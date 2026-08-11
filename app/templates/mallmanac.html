@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Mallmanac · HOLO{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Mallmanac</h1>
+</div>
+<div class="mm2-headline">📍 You Are Here!</div>
+<p class="muted overview-sub">The lifecycle map for every lab — the pin marks the furthest completed
+  sub-process. ✓ = done. Click a lab name to open it.</p>
+
+{% if rows %}
+  {% for r in rows %}
+  <section class="card mm2-card">
+    <div class="mm2-cardhead">
+      <a class="lab-name" href="/labs/{{ r.lab.id }}">{{ r.lab.name }}</a>
+      <span class="status-badge status-{{ r.status|replace(' ', '-')|lower }}">
+        {{ r.status }} · {{ r.progress.percent }}%
+      </span>
+    </div>
+
+    <div class="mm2-stagehead">
+      <div class="mm2-stage">Development</div>
+      <div class="mm2-stage">Production</div>
+    </div>
+
+    <div class="mm2-scroll">
+      <div class="mm2-grid">
+        {% for c in r.cols %}
+        <div class="mm2-col">
+          <div class="mm2-phase s-{{ c.state }}">
+            <span class="mm2-code">{{ c.code }}</span>{{ c.name }}
+          </div>
+          {% for t in c.tasks %}
+          <div class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
+               title="{{ t.title }}">
+            {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
+            <span class="mm2-tasktext">{{ t.title }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endfor %}
+{% else %}
+  <div class="card empty">
+    <p class="muted">No labs yet.</p>
+    <a class="btn" href="/labs/new">Create a lab</a>
+  </div>
+{% endif %}
+
+{% endblock %}

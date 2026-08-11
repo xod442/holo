@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Notifications · HOLO{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <a class="back" href="/admin">&larr; Admin console</a>
+    <h1>Notifications</h1>
+  </div>
+</div>
+
+{% if msg %}<div class="alert {{ 'success' if ok else 'error' }}">{{ msg }}</div>{% endif %}
+
+<section class="card">
+  <h2>Mail forwarder</h2>
+  <p class="hint">Unauthenticated SMTP relay — host/IP, port, and addresses only (no login).</p>
+  <form method="post" action="/admin/mail">
+    <div class="grid2">
+      <label>Forwarder host / IP
+        <input type="text" name="host" value="{{ cfg.host }}" placeholder="smtp.hpe.com or 10.0.0.25">
+      </label>
+      <label>Port
+        <input type="number" name="port" value="{{ cfg.port }}" min="1" max="65535">
+      </label>
+      <label>From address
+        <input type="text" name="mail_from" value="{{ cfg.mail_from }}" placeholder="holo@hpe.com">
+      </label>
+      <label>Default / test recipient
+        <input type="text" name="default_to" value="{{ cfg.default_to }}" placeholder="te-team@hpe.com">
+      </label>
+    </div>
+    <label>App base URL <span class="muted">(for links inside emails, optional)</span>
+      <input type="text" name="app_base_url" value="{{ cfg.app_base_url }}" placeholder="https://theedge.ext.hpe.com/holo">
+    </label>
+    <label class="checkline">
+      <input type="checkbox" name="enabled" value="1" {% if cfg.enabled %}checked{% endif %}>
+      <span>Enabled — actually send phase notifications</span>
+    </label>
+    <button class="btn" type="submit">Save forwarder</button>
+  </form>
+
+  <form method="post" action="/admin/mail/test" class="inline-form test-form">
+    <input type="text" name="to_address" placeholder="test@hpe.com (blank = default)">
+    <button class="btn ghost btn-sm" type="submit">Send test email</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Notification lists</h2>
+  <form method="post" action="/admin/lists" class="inline-form">
+    <input type="text" name="name" placeholder="List name (e.g. vLabs Team)" required>
+    <input type="text" name="description" placeholder="Description (optional)">
+    <button class="btn btn-sm" type="submit">Create list</button>
+  </form>
+</section>
+
+{% for lst in lists %}
+<section class="card nlist">
+  <div class="nlist-head">
+    <div>
+      <h3>{{ lst.name }}</h3>
+      {% if lst.description %}<div class="muted">{{ lst.description }}</div>{% endif %}
+    </div>
+    <form method="post" action="/admin/lists/{{ lst.id }}/delete"
+          onsubmit="return confirm('Delete this list, its recipients and subscriptions?');">
+      <button class="btn-link dark" type="submit">Delete list</button>
+    </form>
+  </div>
+
+  <div class="nlist-cols">
+    <div class="nlist-col">
+      <h4>Recipients</h4>
+      {% if lst.recipients %}
+      <ul class="chip-list">
+        {% for r in lst.recipients %}
+        <li class="chip">{{ r.email }}
+          <form method="post" action="/admin/lists/{{ lst.id }}/recipients/{{ r.id }}/delete">
+            <button class="chip-x" type="submit" title="Remove">&times;</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="muted">No recipients yet.</p>{% endif %}
+      <form method="post" action="/admin/lists/{{ lst.id }}/recipients" class="inline-form">
+        <input type="email" name="email" placeholder="person@hpe.com" required>
+        <button class="btn btn-sm ghost" type="submit">Add</button>
+      </form>
+    </div>
+
+    <div class="nlist-col">
+      <h4>Notify on</h4>
+      {% if lst.subscriptions %}
+      <ul class="sub-list">
+        {% for s in lst.subscriptions %}
+        <li>
+          <span class="sub-badge">{{ s.phase_name }} · {{ s.event }}</span>
+          <form method="post" action="/admin/subscriptions/{{ s.id }}/delete">
+            <button class="chip-x" type="submit" title="Remove">&times;</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="muted">No phase triggers yet.</p>{% endif %}
+      <form method="post" action="/admin/lists/{{ lst.id }}/subscriptions" class="inline-form">
+        <select name="phase_name">
+          {% for pn in phase_names %}<option value="{{ pn }}">{{ pn }}</option>{% endfor %}
+        </select>
+        <select name="event">
+          {% for e in events %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-sm ghost" type="submit">Add trigger</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endfor %}
+
+{% endblock %}

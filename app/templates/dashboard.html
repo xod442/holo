@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · HOLO{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Lab Portfolio</h1>
+  <a class="btn" href="/labs/new">+ New Lab</a>
+</div>
+
+<form method="get" class="filter-bar">
+  <label class="filter-label" for="owner">Owner</label>
+  <select id="owner" name="owner" onchange="this.form.submit()">
+    <option value="all" {% if owner_sel in ('', 'all') %}selected{% endif %}>All owners</option>
+    {% for oid, email in owner_options %}
+    <option value="{{ oid }}" {% if owner_sel == oid|string %}selected{% endif %}>{{ email }}</option>
+    {% endfor %}
+    {% if has_unassigned %}
+    <option value="unassigned" {% if owner_sel == 'unassigned' %}selected{% endif %}>Unassigned</option>
+    {% endif %}
+  </select>
+  <noscript><button class="btn btn-sm" type="submit">Filter</button></noscript>
+  <span class="filter-count">{{ cards|length }} of {{ total_labs }} lab{{ '' if total_labs == 1 else 's' }}</span>
+  {% if owner_sel not in ('', 'all') %}<a class="filter-clear" href="/">clear</a>{% endif %}
+</form>
+
+{% if awaiting %}
+<section class="card queue">
+  <h2>Awaiting your approval <span class="pill amber">{{ awaiting|length }}</span></h2>
+  <ul class="queue-list">
+    {% for row in awaiting %}
+    <li>
+      <a href="/labs/{{ row.lab.id }}">{{ row.lab.name }}</a>
+      <span class="muted">— {{ row.phase.name }}</span>
+      <form method="post" action="/labs/{{ row.lab.id }}/phases/{{ row.phase.id }}/approve" class="inline-approve">
+        <button class="btn btn-sm" type="submit">Approve</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<div class="legend">
+  <span><i class="seg approved"></i> Approved</span>
+  <span><i class="seg completed"></i> Completed</span>
+  <span><i class="seg awaiting_approval"></i> Awaiting</span>
+  <span><i class="seg in_progress"></i> In progress</span>
+  <span><i class="seg not_started"></i> Not started</span>
+  <span><i class="seg blocked"></i> Blocked</span>
+</div>
+
+{% if cards %}
+  {% for c in cards %}
+  <a class="card lab-card" href="/labs/{{ c.lab.id }}">
+    <div class="lab-card-top">
+      <div>
+        <h3 class="lab-name">{{ c.lab.name }}</h3>
+        <div class="lab-meta">
+          {% if c.lab.owner %}{{ c.lab.owner.email }}{% else %}Unassigned{% endif %}
+          {% if c.lab.target_release %} · target {{ c.lab.target_release }}{% endif %}
+        </div>
+      </div>
+      <span class="status-badge status-{{ c.status|replace(' ', '-')|lower }}">{{ c.status }}</span>
+    </div>
+
+    <div class="progress8">
+      {% for p in c.phases %}
+      <div class="seg {{ p.state }}" title="{{ p.name }} — {{ p.state|replace('_',' ') }}"></div>
+      {% endfor %}
+    </div>
+
+    <div class="lab-card-foot">
+      <span class="pct">{{ c.progress.percent }}%</span>
+      <span class="muted">{{ c.progress.done }}/{{ c.progress.total }} phases</span>
+      {% if c.current %}<span class="muted">· Now: {{ c.current.name }}</span>{% endif %}
+      <span class="muted hrs">{{ c.hours.actual|round(1) }} / {{ c.hours.estimated }} hrs</span>
+    </div>
+  </a>
+  {% endfor %}
+{% else %}
+  <div class="card empty">
+    {% if owner_sel not in ('', 'all') %}
+      <p class="muted">No labs match this owner.</p>
+      <a class="btn" href="/">Show all labs</a>
+    {% else %}
+      <p class="muted">No labs yet.</p>
+      <a class="btn" href="/labs/new">Create your first lab</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% endblock %}

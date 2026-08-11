@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ lab.name }} · Calendar · HOLO{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <a class="back" href="/labs/{{ lab.id }}">&larr; {{ lab.name }}</a>
+    <h1>Calendar</h1>
+  </div>
+</div>
+
+<div class="cal-nav">
+  <a class="btn btn-sm ghost" href="/labs/{{ lab.id }}/calendar?month={{ prev_month }}">&larr; Prev</a>
+  <span class="cal-month">{{ month_label }}</span>
+  <a class="btn btn-sm ghost" href="/labs/{{ lab.id }}/calendar?month={{ next_month }}">Next &rarr;</a>
+</div>
+
+<div class="legend">
+  <span><i class="seg approved"></i> Approved</span>
+  <span><i class="seg completed"></i> Completed</span>
+  <span><i class="seg awaiting_approval"></i> Awaiting</span>
+  <span><i class="seg in_progress"></i> In progress</span>
+  <span><i class="seg not_started"></i> Not started</span>
+  <span><i class="seg blocked"></i> Blocked</span>
+</div>
+
+<div class="card cal-card">
+  <div class="cal-grid cal-head">
+    {% for wd in weekdays %}<div class="cal-wd">{{ wd }}</div>{% endfor %}
+  </div>
+  {% for week in weeks %}
+  <div class="cal-grid">
+    {% for cell in week %}
+    <div class="cal-cell{% if not cell.in_month %} other-month{% endif %}{% if cell.is_today %} today{% endif %}">
+      <div class="cal-day">{{ cell.day }}</div>
+      {% for ph in cell.phases %}
+      <div class="cal-event s-{{ ph.state }}" title="{{ ph.name }} — {{ ph.state|replace('_',' ') }}">
+        <span class="cal-code">{{ ph.code }}</span> {{ ph.name }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if unscheduled %}
+<section class="card">
+  <h2>Unscheduled <span class="muted">(no target date set)</span></h2>
+  <div class="unsched-list">
+    {% for ph in unscheduled %}
+    <span class="cal-event s-{{ ph.state }}"><span class="cal-code">{{ ph.code }}</span> {{ ph.name }}</span>
+    {% endfor %}
+  </div>
+  <p class="hint">Set a target date on the <a class="doc-link" href="/labs/{{ lab.id }}">lab page</a> to place these on the calendar.</p>
+</section>
+{% endif %}
+
+{% endblock %}

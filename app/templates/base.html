@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}HOLO{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-group">
+      <img class="hpe-logo" src="/static/hpelogo.png" alt="HPE">
+      <div class="brand">HOL<span>O</span> <small>Hands-On Lab Orchestrator</small></div>
+    </div>
+    {% if user %}
+    <nav class="nav">
+      <a class="navlink" href="/">Dashboard</a>
+      <a class="navlink" href="/mallmanac">Mallmanac</a>
+      <a class="navlink" href="/labs/new">New Lab</a>
+      {% if user.role in ['admin', 'manager'] %}<a class="navlink" href="/admin">Admin</a>
+      <a class="navlink" href="/admin/notifications">Notifications</a>{% endif %}
+      <span class="who">{{ user.email }} · {{ user.role }}</span>
+      <a class="btn-link" href="/account/password">Change password</a>
+      <form method="post" action="/logout" class="logout">
+        <button class="btn-link" type="submit">Log out</button>
+      </form>
+    </nav>
+    {% endif %}
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

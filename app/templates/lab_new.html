@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}New Lab · HOLO{% endblock %}
+{% block content %}
+<div class="card form-card">
+  <h1>New Lab</h1>
+  {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+  <p class="hint">The 8-phase pipeline is cloned onto every new lab. The Concept phase starts active.</p>
+  <form method="post" action="/labs">
+    <label>Lab name
+      <input type="text" name="name" required autofocus placeholder="e.g. AOS-CX OSPF Fundamentals">
+    </label>
+    <label>Target release <span class="muted">(optional)</span>
+      <input type="text" name="target_release" placeholder="e.g. Q4 FY26">
+    </label>
+    <label>Description <span class="muted">(optional)</span>
+      <textarea name="description" rows="3" placeholder="Short summary of the lab"></textarea>
+    </label>
+    <button class="btn" type="submit">Create lab</button>
+    <a class="btn-link dark" href="/">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+name: holo
+
+services:
+  holo:
+    build: .
+    image: holo
+    ports:
+      - "${HOLO_PORT:-8000}:8000"
+    environment:
+      # Required — a fixed key so sessions survive restarts.
+      - HOLO_SECRET_KEY=${HOLO_SECRET_KEY:?set HOLO_SECRET_KEY in .env}
+      - HOLO_DB_PATH=/data/holo.db
+      # 1 = cookie only over HTTPS (correct behind the edge). Set 0 for plain-HTTP local.
+      - HOLO_COOKIE_SECURE=${HOLO_COOKIE_SECURE:-1}
+      - HOLO_COOKIE_NAME=${HOLO_COOKIE_NAME:-holo_session}
+      # Subpath when served behind the edge, e.g. /holo. Empty = root.
+      - HOLO_ROOT_PATH=${HOLO_ROOT_PATH:-}
+      - HOLO_INVITE_TTL_DAYS=${HOLO_INVITE_TTL_DAYS:-7}
+      - HOLO_ADMIN_USERNAME=${HOLO_ADMIN_USERNAME:-admin}
+      - HOLO_ADMIN_PASSWORD=${HOLO_ADMIN_PASSWORD:-admin}
+    volumes:
+      - holo-data:/data
+    restart: unless-stopped
+
+volumes:
+  holo-data:
