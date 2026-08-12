@@ -13,36 +13,11 @@
 
 <section class="card">
   <h2>Mail forwarder</h2>
-  <p class="hint">Unauthenticated SMTP relay — host/IP, port, and addresses only (no login).</p>
-  <form method="post" action="/admin/mail">
-    <div class="grid2">
-      <label>Forwarder host / IP
-        <input type="text" name="host" value="{{ cfg.host }}" placeholder="smtp.hpe.com or 10.0.0.25">
-      </label>
-      <label>Port
-        <input type="number" name="port" value="{{ cfg.port }}" min="1" max="65535">
-      </label>
-      <label>From address
-        <input type="text" name="mail_from" value="{{ cfg.mail_from }}" placeholder="holo@hpe.com">
-      </label>
-      <label>Default / test recipient
-        <input type="text" name="default_to" value="{{ cfg.default_to }}" placeholder="te-team@hpe.com">
-      </label>
-    </div>
-    <label>App base URL <span class="muted">(for links inside emails, optional)</span>
-      <input type="text" name="app_base_url" value="{{ cfg.app_base_url }}" placeholder="https://theedge.ext.hpe.com/holo">
-    </label>
-    <label class="checkline">
-      <input type="checkbox" name="enabled" value="1" {% if cfg.enabled %}checked{% endif %}>
-      <span>Enabled — actually send phase notifications</span>
-    </label>
-    <button class="btn" type="submit">Save forwarder</button>
-  </form>
-
-  <form method="post" action="/admin/mail/test" class="inline-form test-form">
-    <input type="text" name="to_address" placeholder="test@hpe.com (blank = default)">
-    <button class="btn ghost btn-sm" type="submit">Send test email</button>
-  </form>
+  <p class="hint">Configure the SMTP forwarder on the
+    <a class="doc-link" href="/admin">Admin console</a>.
+    {% if cfg and cfg.host %}Currently: <strong>{{ cfg.host }}:{{ cfg.port }}</strong>
+    {% if cfg.enabled %}(enabled){% else %}(disabled){% endif %}.{% else %}Not configured yet.{% endif %}
+    These lists won't email until it's set up and enabled.</p>
 </section>
 
 <section class="card">

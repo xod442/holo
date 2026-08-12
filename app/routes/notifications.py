@@ -37,6 +37,11 @@ def _redirect(msg: str = "", ok: bool = True):
     return RedirectResponse(f"/admin/notifications{suffix}", status_code=status.HTTP_303_SEE_OTHER)
 
 
+def _redirect_admin(msg: str = "", ok: bool = True):
+    suffix = f"?ok={1 if ok else 0}&msg={quote(msg)}" if msg else ""
+    return RedirectResponse(f"/admin{suffix}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/admin/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request, ok: int = 1, msg: str = "",
                       db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -78,7 +83,7 @@ def save_mail(request: Request, host: str = Form(""), port: int = Form(25),
     cfg.enabled = enabled == "1"
     db.add(cfg)
     db.commit()
-    return _redirect("Mail forwarder settings saved.")
+    return _redirect_admin("Mail forwarder settings saved.")
 
 
 @router.post("/admin/mail/test")
@@ -88,7 +93,7 @@ def test_mail(request: Request, to_address: str = Form(""),
     if blocked:
         return blocked
     ok, message = notifier.send_test(db, to_address)
-    return _redirect(message, ok=ok)
+    return _redirect_admin(message, ok=ok)
 
 
 @router.post("/admin/lists")

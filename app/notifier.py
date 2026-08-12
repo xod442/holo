@@ -51,6 +51,26 @@ def send_test(db: Session, to_address: str) -> tuple[bool, str]:
         return False, f"Send failed: {exc}"
 
 
+def send(db: Session, to_address: str, subject: str, body: str) -> tuple[bool, str]:
+    """Send a one-off email (e.g. an invitation) via the forwarder.
+
+    Requires host + from to be set; independent of the phase-notification toggle."""
+    cfg = get_config(db)
+    if cfg is None or not cfg.host:
+        return False, "No mail forwarder host configured (set it in the admin console)."
+    if not cfg.mail_from:
+        return False, "No 'from' address configured for the mail forwarder."
+    to_address = (to_address or "").strip()
+    if "@" not in to_address:
+        return False, "No valid recipient address."
+    try:
+        _send(cfg, [to_address], subject, body)
+        return True, f"Email sent to {to_address}."
+    except Exception as exc:  # noqa: BLE001 — surface the relay error
+        logger.warning("HOLO send failed: %s", exc)
+        return False, f"Send failed: {exc}"
+
+
 def _body(cfg: MailConfig, lab, phase, event: str) -> str:
     lines = [
         f"Lab:    {lab.name}",

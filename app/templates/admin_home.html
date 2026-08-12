@@ -7,10 +7,16 @@
 
 {% if new_invite_link %}
 <div class="alert success">
-  <strong>Invitation created.</strong> Send this link to the user:
+  <strong>Invitation created.</strong> Copy this link and send it, or email it directly:
   <div class="copy-row">
     <input class="copy-input" value="{{ new_invite_link }}" readonly onclick="this.select()">
   </div>
+  {% if new_invite_id %}
+  <form method="post" action="/admin/invite/{{ new_invite_id }}/email" class="email-invite-form">
+    <button class="btn btn-sm" type="submit">✉ Email this link</button>
+    <span class="hint" style="margin:0;">(sends via the mail forwarder below)</span>
+  </form>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -25,14 +31,48 @@
     </select>
     <button class="btn" type="submit">Generate link</button>
   </form>
-  <p class="hint">Links are single-use and expire. Copy and send them yourself.</p>
+  <p class="hint">Links are single-use and expire. Copy/paste them, or use ✉ Email to send via the forwarder.</p>
+</section>
+
+<section class="card">
+  <h2>Mail forwarder</h2>
+  <p class="hint">Unauthenticated SMTP relay — host/IP, port, and addresses only (no login).
+    Used for invitation emails and phase notifications.</p>
+  <form method="post" action="/admin/mail">
+    <div class="grid2">
+      <label>Forwarder host / IP
+        <input type="text" name="host" value="{{ cfg.host }}" placeholder="smtp.hpe.com or 10.0.0.25">
+      </label>
+      <label>Port
+        <input type="number" name="port" value="{{ cfg.port }}" min="1" max="65535">
+      </label>
+      <label>From address
+        <input type="text" name="mail_from" value="{{ cfg.mail_from }}" placeholder="holo@hpe.com">
+      </label>
+      <label>Default / test recipient
+        <input type="text" name="default_to" value="{{ cfg.default_to }}" placeholder="te-team@hpe.com">
+      </label>
+    </div>
+    <label>App base URL <span class="muted">(for links inside emails, optional)</span>
+      <input type="text" name="app_base_url" value="{{ cfg.app_base_url }}" placeholder="https://theedge.ext.hpe.com/holo">
+    </label>
+    <label class="checkline">
+      <input type="checkbox" name="enabled" value="1" {% if cfg and cfg.enabled %}checked{% endif %}>
+      <span>Enabled — send phase notifications automatically</span>
+    </label>
+    <button class="btn" type="submit">Save forwarder</button>
+  </form>
+  <form method="post" action="/admin/mail/test" class="inline-form test-form">
+    <input type="text" name="to_address" placeholder="test@hpe.com (blank = default)">
+    <button class="btn ghost btn-sm" type="submit">Send test email</button>
+  </form>
 </section>
 
 <section class="card">
   <h2>Pending invitations</h2>
   {% if pending %}
   <table class="tbl">
-    <thead><tr><th>Email</th><th>Role</th><th>Expires</th><th>Link</th></tr></thead>
+    <thead><tr><th>Email</th><th>Role</th><th>Expires</th><th>Link</th><th></th></tr></thead>
     <tbody>
     {% for inv in pending %}
       <tr>
@@ -42,6 +82,11 @@
         <td>
           <input class="copy-input" value="{{ register_base }}{{ inv.token }}"
                  readonly onclick="this.select()">
+        </td>
+        <td>
+          <form method="post" action="/admin/invite/{{ inv.id }}/email">
+            <button class="btn-link dark" type="submit" title="Email this link to {{ inv.email }}">✉ email</button>
+          </form>
         </td>
       </tr>
     {% endfor %}
