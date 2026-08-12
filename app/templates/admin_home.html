@@ -22,7 +22,7 @@
     <input class="copy-input" value="{{ new_invite_link }}" readonly onclick="this.select()">
   </div>
   {% if new_invite_id %}
-  <form method="post" action="/admin/invite/{{ new_invite_id }}/email" class="email-invite-form">
+  <form method="post" action="{{ rp }}/admin/invite/{{ new_invite_id }}/email" class="email-invite-form">
     <button class="btn btn-sm" type="submit">✉ Email this link</button>
     <span class="hint" style="margin:0;">(sends via the mail forwarder below)</span>
   </form>
@@ -32,7 +32,7 @@
 
 <section class="card">
   <h2>Invite a user</h2>
-  <form method="post" action="/admin/invite" class="inline-form">
+  <form method="post" action="{{ rp }}/admin/invite" class="inline-form">
     <input type="email" name="email" placeholder="person@hpe.com" required>
     <select name="role">
       <option value="member">Member</option>
@@ -48,7 +48,7 @@
   <h2>Mail forwarder</h2>
   <p class="hint">Unauthenticated SMTP relay — host/IP, port, and addresses only (no login).
     Used for invitation emails and phase notifications.</p>
-  <form method="post" action="/admin/mail">
+  <form method="post" action="{{ rp }}/admin/mail">
     <div class="grid2">
       <label>Forwarder host / IP
         <input type="text" name="host" value="{{ cfg.host }}" placeholder="smtp.hpe.com or 10.0.0.25">
@@ -72,7 +72,7 @@
     </label>
     <button class="btn" type="submit">Save forwarder</button>
   </form>
-  <form method="post" action="/admin/mail/test" class="inline-form test-form">
+  <form method="post" action="{{ rp }}/admin/mail/test" class="inline-form test-form">
     <input type="text" name="to_address" placeholder="test@hpe.com (blank = default)">
     <button class="btn ghost btn-sm" type="submit">Send test email</button>
   </form>
@@ -94,7 +94,7 @@
                  readonly onclick="this.select()">
         </td>
         <td>
-          <form method="post" action="/admin/invite/{{ inv.id }}/email">
+          <form method="post" action="{{ rp }}/admin/invite/{{ inv.id }}/email">
             <button class="btn-link dark" type="submit" title="Email this link to {{ inv.email }}">✉ email</button>
           </form>
         </td>
@@ -118,7 +118,7 @@
         <td>{{ u.role }}</td>
         <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
         <td>
-          <form method="post" action="/admin/users/{{ u.id }}/reset-password"
+          <form method="post" action="{{ rp }}/admin/users/{{ u.id }}/reset-password"
                 onsubmit="return confirm('Reset password for {{ u.email }}? They get a temporary password and must change it at next login.');">
             <button class="btn-link dark" type="submit">reset password</button>
           </form>
@@ -133,7 +133,7 @@
   <h2>API documentation</h2>
   <div class="backup-head">
     <p class="hint" style="margin:0;">Interactive Swagger UI for the HOLO API (admin only, self-hosted).</p>
-    <a class="btn btn-sm" href="/docs" target="_blank" rel="noopener">Open Swagger</a>
+    <a class="btn btn-sm" href="{{ rp }}/docs" target="_blank" rel="noopener">Open Swagger</a>
   </div>
 </section>
 
@@ -144,7 +144,7 @@
       Automatic backup runs daily; kept on the server volume.
       {% if backups %}Latest: <strong>{{ backups[0].when }}</strong>.{% else %}No backups yet.{% endif %}
     </p>
-    <form method="post" action="/admin/backup">
+    <form method="post" action="{{ rp }}/admin/backup">
       <button class="btn btn-sm" type="submit">Back up now</button>
     </form>
   </div>
@@ -158,8 +158,8 @@
         <td>{{ b.when }}</td>
         <td>{{ b.size_kb }} KB</td>
         <td class="backup-actions">
-          <a class="doc-link" href="/admin/backup/download/{{ b.name }}">download</a>
-          <form method="post" action="/admin/restore/{{ b.name }}"
+          <a class="doc-link" href="{{ rp }}/admin/backup/download/{{ b.name }}">download</a>
+          <form method="post" action="{{ rp }}/admin/restore/{{ b.name }}"
                 onsubmit="return confirm('Restore this backup? It will REPLACE the current database. A safety backup is taken first.');">
             <button class="btn-link dark" type="submit">restore</button>
           </form>
@@ -170,7 +170,7 @@
   </table>
   {% endif %}
 
-  <form method="post" action="/admin/restore" enctype="multipart/form-data" class="restore-form"
+  <form method="post" action="{{ rp }}/admin/restore" enctype="multipart/form-data" class="restore-form"
         onsubmit="return confirm('Restore will REPLACE the current database with the uploaded file. A safety backup is taken first. Continue?');">
     <label class="restore-label">Restore from a downloaded backup file</label>
     <div class="restore-row">

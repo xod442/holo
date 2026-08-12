@@ -20,8 +20,16 @@ from ..web import templates
 router = APIRouter()
 
 
+def _public_base(request: Request) -> str:
+    """Absolute base URL including the edge subpath (ROOT_PATH) if any."""
+    base = str(request.base_url).rstrip("/")
+    if config.ROOT_PATH and not base.endswith(config.ROOT_PATH):
+        base += config.ROOT_PATH
+    return base
+
+
 def _register_link(request: Request, token: str) -> str:
-    return f"{str(request.base_url).rstrip('/')}/register?token={token}"
+    return f"{_public_base(request)}/register?token={token}"
 
 
 def _render_admin_home(request, db, user, new_invite_link=None, new_invite_id=None,
@@ -42,7 +50,7 @@ def _render_admin_home(request, db, user, new_invite_link=None, new_invite_id=No
             "user": user,
             "users": users,
             "pending": pending,
-            "register_base": f"{str(request.base_url).rstrip('/')}/register?token=",
+            "register_base": f"{_public_base(request)}/register?token=",
             "new_invite_link": new_invite_link,
             "new_invite_id": new_invite_id,
             "reset_info": reset_info,

@@ -4,7 +4,7 @@
 
 <div class="page-head">
   <div>
-    <a class="back" href="/admin">&larr; Admin console</a>
+    <a class="back" href="{{ rp }}/admin">&larr; Admin console</a>
     <h1>Notifications</h1>
   </div>
 </div>
@@ -14,7 +14,7 @@
 <section class="card">
   <h2>Mail forwarder</h2>
   <p class="hint">Configure the SMTP forwarder on the
-    <a class="doc-link" href="/admin">Admin console</a>.
+    <a class="doc-link" href="{{ rp }}/admin">Admin console</a>.
     {% if cfg and cfg.host %}Currently: <strong>{{ cfg.host }}:{{ cfg.port }}</strong>
     {% if cfg.enabled %}(enabled){% else %}(disabled){% endif %}.{% else %}Not configured yet.{% endif %}
     These lists won't email until it's set up and enabled.</p>
@@ -22,7 +22,7 @@
 
 <section class="card">
   <h2>Notification lists</h2>
-  <form method="post" action="/admin/lists" class="inline-form">
+  <form method="post" action="{{ rp }}/admin/lists" class="inline-form">
     <input type="text" name="name" placeholder="List name (e.g. vLabs Team)" required>
     <input type="text" name="description" placeholder="Description (optional)">
     <button class="btn btn-sm" type="submit">Create list</button>
@@ -36,7 +36,7 @@
       <h3>{{ lst.name }}</h3>
       {% if lst.description %}<div class="muted">{{ lst.description }}</div>{% endif %}
     </div>
-    <form method="post" action="/admin/lists/{{ lst.id }}/delete"
+    <form method="post" action="{{ rp }}/admin/lists/{{ lst.id }}/delete"
           onsubmit="return confirm('Delete this list, its recipients and subscriptions?');">
       <button class="btn-link dark" type="submit">Delete list</button>
     </form>
@@ -49,14 +49,14 @@
       <ul class="chip-list">
         {% for r in lst.recipients %}
         <li class="chip">{{ r.email }}
-          <form method="post" action="/admin/lists/{{ lst.id }}/recipients/{{ r.id }}/delete">
+          <form method="post" action="{{ rp }}/admin/lists/{{ lst.id }}/recipients/{{ r.id }}/delete">
             <button class="chip-x" type="submit" title="Remove">&times;</button>
           </form>
         </li>
         {% endfor %}
       </ul>
       {% else %}<p class="muted">No recipients yet.</p>{% endif %}
-      <form method="post" action="/admin/lists/{{ lst.id }}/recipients" class="inline-form">
+      <form method="post" action="{{ rp }}/admin/lists/{{ lst.id }}/recipients" class="inline-form">
         <input type="email" name="email" placeholder="person@hpe.com" required>
         <button class="btn btn-sm ghost" type="submit">Add</button>
       </form>
@@ -69,14 +69,14 @@
         {% for s in lst.subscriptions %}
         <li>
           <span class="sub-badge">{{ s.phase_name }} · {{ s.event }}</span>
-          <form method="post" action="/admin/subscriptions/{{ s.id }}/delete">
+          <form method="post" action="{{ rp }}/admin/subscriptions/{{ s.id }}/delete">
             <button class="chip-x" type="submit" title="Remove">&times;</button>
           </form>
         </li>
         {% endfor %}
       </ul>
       {% else %}<p class="muted">No phase triggers yet.</p>{% endif %}
-      <form method="post" action="/admin/lists/{{ lst.id }}/subscriptions" class="inline-form">
+      <form method="post" action="{{ rp }}/admin/lists/{{ lst.id }}/subscriptions" class="inline-form">
         <select name="phase_name">
           {% for pn in phase_names %}<option value="{{ pn }}">{{ pn }}</option>{% endfor %}
         </select>

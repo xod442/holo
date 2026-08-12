@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ lab.name }} · HOLO{% endblock %}
 {% block head_extra %}
-<link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css">
-<link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr-dark.css">
+<link rel="stylesheet" href="{{ rp }}/assets/vendor/flatpickr/flatpickr.min.css">
+<link rel="stylesheet" href="{{ rp }}/assets/vendor/flatpickr/flatpickr-dark.css">
 {% endblock %}
 {% block content %}
 
 <div class="page-head">
   <div>
-    <a class="back" href="/">&larr; Portfolio</a>
+    <a class="back" href="{{ rp }}/">&larr; Portfolio</a>
     <h1>{{ lab.name }}</h1>
     <div class="lab-meta">
       {% if lab.target_release %}target {{ lab.target_release }}{% else %}no target set{% endif %}
@@ -20,7 +20,7 @@
 {% if lab.description %}<p class="lab-desc">{{ lab.description }}</p>{% endif %}
 
 <div class="lab-toolbar">
-  <a class="btn btn-sm ghost" href="/labs/{{ lab.id }}/calendar">📅 Calendar view</a>
+  <a class="btn btn-sm ghost" href="{{ rp }}/labs/{{ lab.id }}/calendar">📅 Calendar view</a>
 </div>
 
 <section class="card owner-bar">
@@ -29,7 +29,7 @@
     <strong>{% if lab.owner %}{{ lab.owner.email }}{% else %}Unassigned{% endif %}</strong>
   </div>
   {% if can_change_owner %}
-  <form method="post" action="/labs/{{ lab.id }}/owner" class="owner-form">
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/owner" class="owner-form">
     <select name="owner_id">
       <option value="">— Unassigned —</option>
       {% for u in users %}
@@ -65,7 +65,7 @@
       <a class="doc-link" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">
         <span class="doc-ico">🔗</span>{{ l.label }}
       </a>
-      <form method="post" action="/labs/{{ lab.id }}/links/{{ l.id }}/delete" class="link-del"
+      <form method="post" action="{{ rp }}/labs/{{ lab.id }}/links/{{ l.id }}/delete" class="link-del"
             onsubmit="return confirm('Remove this link?');">
         <button class="btn-link dark" type="submit">Remove</button>
       </form>
@@ -75,7 +75,7 @@
   {% else %}
   <p class="muted">No documents linked yet — add SharePoint or other workshop docs below.</p>
   {% endif %}
-  <form method="post" action="/labs/{{ lab.id }}/links" class="link-add">
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/links" class="link-add">
     <input type="text" name="label" placeholder="Label (e.g. Setup Guide)">
     <input type="url" name="url" placeholder="https://…sharepoint.com/…" required>
     <button class="btn btn-sm" type="submit">Add link</button>
@@ -101,7 +101,7 @@
     </div>
   </div>
 
-  <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/save" class="pill-form">
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/save" class="pill-form">
     <ul class="tasklist">
       {% for t in row.tasks %}
       <li class="{% if t.done %}done{% endif %}">
@@ -140,7 +140,7 @@
     <div class="phase-actions">
       {% if p.state == 'not_started' %}
         {% if row.can_start %}
-        <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/start">
+        <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/start">
           <button class="btn btn-sm" type="submit">Start phase</button>
         </form>
         {% else %}
@@ -148,27 +148,27 @@
         {% endif %}
       {% elif p.state == 'in_progress' %}
         {% if p.requires_approval %}
-        <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/submit">
+        <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/submit">
           <button class="btn btn-sm" type="submit">Submit for approval</button>
         </form>
         {% else %}
-        <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/complete">
+        <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/complete">
           <button class="btn btn-sm" type="submit">Mark completed</button>
         </form>
         {% endif %}
-        <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/block">
+        <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/block">
           <button class="btn btn-sm ghost danger" type="submit">Block</button>
         </form>
       {% elif p.state == 'awaiting_approval' %}
         {% if can_approve %}
-        <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/approve" class="approve-form">
+        <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/approve" class="approve-form">
           <input type="text" name="note" placeholder="Approval note (optional)">
           <button class="btn btn-sm" type="submit">Approve</button>
         </form>
         {% else %}
         <span class="muted">Awaiting manager approval</span>
         {% endif %}
-        <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/block">
+        <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/block">
           <button class="btn btn-sm ghost danger" type="submit">Block</button>
         </form>
       {% elif p.state == 'approved' %}
@@ -180,7 +180,7 @@
       {% elif p.state == 'completed' %}
         <span class="approved-note">✓ Completed</span>
       {% elif p.state == 'blocked' %}
-        <form method="post" action="/labs/{{ lab.id }}/phases/{{ p.id }}/unblock">
+        <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/unblock">
           <button class="btn btn-sm" type="submit">Unblock</button>
         </form>
       {% endif %}
@@ -191,7 +191,7 @@
 
 {% endblock %}
 {% block scripts %}
-<script src="/static/vendor/flatpickr/flatpickr.min.js"></script>
+<script src="{{ rp }}/assets/vendor/flatpickr/flatpickr.min.js"></script>
 <script>
   flatpickr(".datepick", { dateFormat: "Y-m-d", allowInput: true });
 </script>

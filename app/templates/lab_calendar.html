@@ -4,15 +4,15 @@
 
 <div class="page-head">
   <div>
-    <a class="back" href="/labs/{{ lab.id }}">&larr; {{ lab.name }}</a>
+    <a class="back" href="{{ rp }}/labs/{{ lab.id }}">&larr; {{ lab.name }}</a>
     <h1>Calendar</h1>
   </div>
 </div>
 
 <div class="cal-nav">
-  <a class="btn btn-sm ghost" href="/labs/{{ lab.id }}/calendar?month={{ prev_month }}">&larr; Prev</a>
+  <a class="btn btn-sm ghost" href="{{ rp }}/labs/{{ lab.id }}/calendar?month={{ prev_month }}">&larr; Prev</a>
   <span class="cal-month">{{ month_label }}</span>
-  <a class="btn btn-sm ghost" href="/labs/{{ lab.id }}/calendar?month={{ next_month }}">Next &rarr;</a>
+  <a class="btn btn-sm ghost" href="{{ rp }}/labs/{{ lab.id }}/calendar?month={{ next_month }}">Next &rarr;</a>
 </div>
 
 <div class="legend">
@@ -52,7 +52,7 @@
     <span class="cal-event s-{{ ph.state }}"><span class="cal-code">{{ ph.code }}</span> {{ ph.name }}</span>
     {% endfor %}
   </div>
-  <p class="hint">Set a target date on the <a class="doc-link" href="/labs/{{ lab.id }}">lab page</a> to place these on the calendar.</p>
+  <p class="hint">Set a target date on the <a class="doc-link" href="{{ rp }}/labs/{{ lab.id }}">lab page</a> to place these on the calendar.</p>
 </section>
 {% endif %}
 
