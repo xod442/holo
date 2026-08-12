@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Metrics · HOLO{% endblock %}
+{% block content %}
+
+<div class="page-head"><h1>Manager Metrics</h1></div>
+<p class="muted overview-sub">Everything at a glance across {{ m.total }} active lab{{ '' if m.total == 1 else 's' }}.</p>
+
+<div class="metrics-hero">
+  <div class="ring" style="--pct: {{ m.released_pct }}">
+    <div class="ring-inner">
+      <div class="ring-val">{{ m.released_pct }}%</div>
+      <div class="ring-cap">released</div>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi k-green"><div class="kpi-n">{{ m.total }}</div><div class="kpi-l">HOLs in system</div></div>
+    <div class="kpi k-green"><div class="kpi-n">{{ m.released }}</div><div class="kpi-l">Released</div></div>
+    <div class="kpi k-blue"><div class="kpi-n">{{ m.in_progress }}</div><div class="kpi-l">In progress</div></div>
+    <div class="kpi k-red"><div class="kpi-n">{{ m.blocked }}</div><div class="kpi-l">Blocked</div></div>
+    <div class="kpi k-amber"><div class="kpi-n">{{ m.awaiting }}</div><div class="kpi-l">Awaiting approval</div></div>
+    <div class="kpi k-red"><div class="kpi-n">{{ m.overdue }}</div><div class="kpi-l">Past target date</div></div>
+    <div class="kpi k-green"><div class="kpi-n">{{ m.pipeline_pct }}%</div><div class="kpi-l">Pipeline complete</div></div>
+    <div class="kpi k-teal"><div class="kpi-n">{{ m.act_hours }}<span class="kpi-sub"> / {{ m.est_hours }}h</span></div><div class="kpi-l">Effort (actual / est)</div></div>
+  </div>
+</div>
+
+<div class="metrics-cols">
+  <section class="card">
+    <h2>Pipeline — where labs are sitting</h2>
+    {% if m.funnel_max %}
+    <div class="funnel">
+      {% for f in m.funnel %}
+      <div class="funnel-row">
+        <div class="funnel-label"><span class="mm2-code">{{ f.code }}</span> {{ f.name }}</div>
+        <div class="funnel-track">
+          <div class="funnel-bar {% if loop.index0 < 4 %}dev{% else %}prod{% endif %}"
+               style="width: {{ (f.count * 100 // m.funnel_max) if f.count else 0 }}%">
+          </div>
+        </div>
+        <div class="funnel-ct">{{ f.count }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">No labs in flight (all released or none yet).</p>{% endif %}
+    <div class="stage-split">
+      <span class="spill dev">Development · {{ m.dev_ct }}</span>
+      <span class="spill prod">Production · {{ m.prod_ct }}</span>
+      <span class="spill rel">Released · {{ m.released }}</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Labs by owner</h2>
+    {% if m.owners %}
+    <ul class="owner-metrics">
+      {% for email, ct in m.owners %}
+      <li><span class="om-name">{{ email }}</span><span class="om-ct">{{ ct }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">No labs.</p>{% endif %}
+    {% if m.archived %}<p class="hint">{{ m.archived }} archived lab{{ '' if m.archived == 1 else 's' }} (hidden).</p>{% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <h2>All labs</h2>
+  <table class="tbl metrics-tbl">
+    <thead><tr><th>Lab</th><th>Owner</th><th>Current phase</th><th>Status</th><th>Progress</th><th>Hours</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><a class="doc-link" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a></td>
+      <td class="muted">{{ r.owner }}</td>
+      <td>{{ r.current }}</td>
+      <td><span class="status-badge status-{{ r.status|replace(' ', '-')|lower }}">{{ r.status }}</span></td>
+      <td class="prog-cell">
+        <div class="mini-prog"><div class="mini-prog-bar" style="width: {{ r.percent }}%"></div></div>
+        <span class="mini-pct">{{ r.percent }}%</span>
+      </td>
+      <td class="muted">{{ r.act|round(0)|int }}/{{ r.est }}h</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

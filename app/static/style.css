@@ -322,6 +322,63 @@ textarea { font-family: inherit; resize: vertical; }
 .link-add input[name=label] { flex: 1 1 180px; }
 .link-add input[name=url] { flex: 2 1 280px; }
 
+/* ---- manager metrics ---- */
+.metrics-hero { display: flex; align-items: center; gap: 26px; margin-bottom: 22px; flex-wrap: wrap; }
+.ring {
+  position: relative; width: 172px; height: 172px; border-radius: 50%; flex: 0 0 auto;
+  background: conic-gradient(var(--hpe-green) calc(var(--pct) * 1%), #2a333c 0);
+  box-shadow: 0 0 34px rgba(1, 169, 130, .28);
+}
+.ring-inner {
+  position: absolute; inset: 16px; border-radius: 50%; background: var(--surface);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ring-val { font-size: 2.1rem; font-weight: 800; color: var(--hpe-green-dark); line-height: 1; }
+.ring-cap { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 4px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; flex: 1 1 420px; }
+.kpi {
+  background: linear-gradient(160deg, var(--surface2), var(--surface));
+  border: 1px solid var(--line); border-top: 3px solid var(--muted);
+  border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(0,0,0,.3);
+}
+.kpi-n { font-size: 1.9rem; font-weight: 800; line-height: 1; color: var(--text); }
+.kpi-sub { font-size: .9rem; font-weight: 600; color: var(--muted); }
+.kpi-l { font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 6px; }
+.kpi.k-green { border-top-color: var(--hpe-green); } .kpi.k-green .kpi-n { color: var(--hpe-green-dark); }
+.kpi.k-blue  { border-top-color: #3b82f6; } .kpi.k-blue .kpi-n { color: #7db1ff; }
+.kpi.k-red   { border-top-color: var(--danger); } .kpi.k-red .kpi-n { color: #ffb4b4; }
+.kpi.k-amber { border-top-color: #f59e0b; } .kpi.k-amber .kpi-n { color: #f5b13c; }
+.kpi.k-teal  { border-top-color: var(--accent); } .kpi.k-teal .kpi-n { color: var(--accent); }
+
+.metrics-cols { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .metrics-cols { grid-template-columns: 1fr; } }
+
+.funnel { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.funnel-row { display: grid; grid-template-columns: 200px 1fr 32px; align-items: center; gap: 10px; }
+.funnel-label { font-size: .74rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.funnel-track { background: var(--surface2); border-radius: 6px; height: 18px; overflow: hidden; }
+.funnel-bar { height: 100%; border-radius: 6px; min-width: 2px; transition: width .3s; }
+.funnel-bar.dev { background: linear-gradient(90deg, #017a5f, var(--hpe-green)); }
+.funnel-bar.prod { background: linear-gradient(90deg, #1a8f88, var(--accent)); }
+.funnel-ct { font-weight: 800; font-size: .9rem; text-align: right; }
+
+.stage-split { display: flex; flex-wrap: wrap; gap: 8px; }
+.spill { font-size: .76rem; font-weight: 700; border-radius: 999px; padding: 4px 12px; }
+.spill.dev { background: rgba(1,169,130,.16); color: var(--hpe-green-dark); }
+.spill.prod { background: rgba(42,210,201,.16); color: var(--accent); }
+.spill.rel { background: var(--surface2); color: var(--muted); }
+
+.owner-metrics { list-style: none; margin: 0; padding: 0; }
+.owner-metrics li { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: .88rem; }
+.owner-metrics li:last-child { border-bottom: none; }
+.om-ct { font-weight: 800; color: var(--hpe-green-dark); }
+
+.metrics-tbl .prog-cell { min-width: 160px; }
+.mini-prog { display: inline-block; width: 110px; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; vertical-align: middle; }
+.mini-prog-bar { height: 100%; background: var(--hpe-green); }
+.mini-pct { font-size: .78rem; color: var(--muted); margin-left: 8px; }
+
 /* ---- mallmanac (lifecycle map, calendar-style pill grid) ---- */
 .mm2-headline { font-size: 1.8rem; font-weight: 800; color: var(--hpe-green-dark); margin: -6px 0 4px; letter-spacing: .01em; }
 .mm2-card { padding: 18px; }

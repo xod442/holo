@@ -152,6 +152,89 @@ def mallmanac(request: Request, db: Session = Depends(get_db), user=Depends(get_
     )
 
 
+@router.get("/metrics", response_class=HTMLResponse)
+def metrics(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Manager command center — at-a-glance metrics across all active labs."""
+    blocked_redirect = _staff_only(user)
+    if blocked_redirect:
+        return blocked_redirect
+
+    labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.name).all()
+    axis = _phase_axis()
+    today = date.today()
+    total = len(labs)
+
+    released = in_progress = blocked = awaiting = overdue = 0
+    done_phases = est_hours = act_hours = 0.0
+    dev_ct = prod_ct = 0
+    funnel = [{"code": axis[i]["code"], "name": axis[i]["name"], "count": 0} for i in range(8)]
+    owner_counts: dict[str, int] = {}
+    rows = []
+
+    for lab in labs:
+        status = svc.lab_status(lab)
+        prog = svc.progress(lab)
+        cur = svc.current_phase(lab)
+        hrs = svc.hours_summary(lab)
+        done_phases += prog["done"]
+        est_hours += hrs["estimated"]
+        act_hours += hrs["actual"]
+
+        if status == "Complete":
+            released += 1
+        elif status == "Blocked":
+            blocked += 1
+        else:
+            in_progress += 1
+
+        if cur is not None:
+            funnel[cur.position]["count"] += 1
+            if cur.position < 4:
+                dev_ct += 1
+            else:
+                prod_ct += 1
+            if cur.target_date:
+                try:
+                    if datetime.strptime(cur.target_date, "%Y-%m-%d").date() < today:
+                        overdue += 1
+                except ValueError:
+                    pass
+
+        awaiting += sum(1 for p in lab.phases if p.state == PHASE_AWAITING)
+        owner = lab.owner.email if lab.owner else "Unassigned"
+        owner_counts[owner] = owner_counts.get(owner, 0) + 1
+
+        rows.append({
+            "lab": lab, "status": status, "percent": prog["percent"],
+            "current": cur.name if cur else "—",
+            "owner": owner, "act": hrs["actual"], "est": hrs["estimated"],
+        })
+
+    rows.sort(key=lambda r: r["percent"], reverse=True)
+    total_phases = total * 8
+    m = {
+        "total": total,
+        "released": released,
+        "released_pct": round(100 * released / total) if total else 0,
+        "in_progress": in_progress,
+        "blocked": blocked,
+        "awaiting": awaiting,
+        "overdue": overdue,
+        "pipeline_pct": round(100 * done_phases / total_phases) if total_phases else 0,
+        "est_hours": round(est_hours),
+        "act_hours": round(act_hours),
+        "dev_ct": dev_ct,
+        "prod_ct": prod_ct,
+        "funnel": funnel,
+        "funnel_max": max((f["count"] for f in funnel), default=0),
+        "owners": sorted(owner_counts.items(), key=lambda kv: kv[1], reverse=True),
+        "archived": db.query(Lab).filter(Lab.archived_at.isnot(None)).count(),
+    }
+    return templates.TemplateResponse(
+        request, "metrics.html", {"request": request, "user": user, "m": m, "rows": rows},
+    )
+
+
 def _staff_only(user):
     if user is None:
         return _login()
