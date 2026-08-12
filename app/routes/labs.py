@@ -46,7 +46,12 @@ def dashboard(request: Request, owner: str = "",
     if user is None:
         return _login()
 
-    all_labs = db.query(Lab).order_by(Lab.created_at.desc()).all()
+    all_labs = (
+        db.query(Lab)
+        .filter(Lab.archived_at.is_(None))
+        .order_by(Lab.created_at.desc())
+        .all()
+    )
 
     # Build the owner filter options from every lab's owner.
     owner_options: dict[int, str] = {}
@@ -83,8 +88,8 @@ def dashboard(request: Request, owner: str = "",
     if user.role == ROLE_MANAGER:
         rows = (
             db.query(Phase)
-            .filter(Phase.state == PHASE_AWAITING)
             .join(Lab, Lab.id == Phase.lab_id)
+            .filter(Phase.state == PHASE_AWAITING, Lab.archived_at.is_(None))
             .order_by(Lab.name)
             .all()
         )
@@ -114,7 +119,7 @@ def mallmanac(request: Request, db: Session = Depends(get_db), user=Depends(get_
     if user is None:
         return _login()
     axis = _phase_axis()
-    labs = db.query(Lab).order_by(Lab.created_at).all()
+    labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.created_at).all()
     rows = []
     for lab in labs:
         # Furthest completed task = last done task in pipeline order.
@@ -145,6 +150,64 @@ def mallmanac(request: Request, db: Session = Depends(get_db), user=Depends(get_
         "mallmanac.html",
         {"request": request, "user": user, "rows": rows},
     )
+
+
+def _staff_only(user):
+    if user is None:
+        return _login()
+    if user.role not in STAFF_ROLES:
+        return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    return None
+
+
+@router.get("/admin/labs", response_class=HTMLResponse)
+def manage_labs(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Staff: pick an active lab to archive."""
+    blocked = _staff_only(user)
+    if blocked:
+        return blocked
+    labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.name).all()
+    rows = [{"lab": l, "status": svc.lab_status(l), "progress": svc.progress(l)} for l in labs]
+    archived_count = db.query(Lab).filter(Lab.archived_at.isnot(None)).count()
+    return templates.TemplateResponse(
+        request, "admin_labs.html",
+        {"request": request, "user": user, "rows": rows, "archived_count": archived_count},
+    )
+
+
+@router.get("/archived", response_class=HTMLResponse)
+def archived_labs(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Staff: view archived labs (hidden from the dashboard/mallmanac)."""
+    blocked = _staff_only(user)
+    if blocked:
+        return blocked
+    labs = db.query(Lab).filter(Lab.archived_at.isnot(None)).order_by(Lab.archived_at.desc()).all()
+    rows = [{"lab": l, "status": svc.lab_status(l), "progress": svc.progress(l)} for l in labs]
+    return templates.TemplateResponse(
+        request, "archived.html", {"request": request, "user": user, "rows": rows},
+    )
+
+
+@router.post("/labs/{lab_id}/archive")
+def archive(lab_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    blocked = _staff_only(user)
+    if blocked:
+        return blocked
+    lab = db.get(Lab, lab_id)
+    if lab is not None:
+        svc.archive_lab(db, lab, user.id)
+    return RedirectResponse("/admin/labs", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/labs/{lab_id}/unarchive")
+def unarchive(lab_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    blocked = _staff_only(user)
+    if blocked:
+        return blocked
+    lab = db.get(Lab, lab_id)
+    if lab is not None:
+        svc.unarchive_lab(db, lab)
+    return RedirectResponse("/archived", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/labs/new", response_class=HTMLResponse)

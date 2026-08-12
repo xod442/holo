@@ -176,6 +176,22 @@ def set_blocked(db: Session, phase: Phase, blocked: bool) -> bool:
     return True
 
 
+def archive_lab(db: Session, lab: Lab, user_id: int) -> bool:
+    lab.archived_at = datetime.utcnow()
+    lab.archived_by_id = user_id
+    db.add(lab)
+    db.commit()
+    return True
+
+
+def unarchive_lab(db: Session, lab: Lab) -> bool:
+    lab.archived_at = None
+    lab.archived_by_id = None
+    db.add(lab)
+    db.commit()
+    return True
+
+
 def set_owner(db: Session, lab: Lab, owner_id: int | None) -> bool:
     lab.owner_id = owner_id
     db.add(lab)

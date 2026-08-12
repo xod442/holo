@@ -66,8 +66,12 @@ class Lab(Base):
     target_release: Mapped[str] = mapped_column(String, default="")
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Archived labs are hidden from the dashboard/mallmanac (None = active).
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    archived_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
-    owner: Mapped["User | None"] = relationship("User")
+    owner: Mapped["User | None"] = relationship("User", foreign_keys=[owner_id])
+    archived_by: Mapped["User | None"] = relationship("User", foreign_keys=[archived_by_id])
     phases: Mapped[list["Phase"]] = relationship(
         "Phase",
         back_populates="lab",

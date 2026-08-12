@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Archived Labs · HOLO{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <a class="back" href="{{ rp }}/admin/labs">&larr; Archive a Lab</a>
+    <h1>Archived Labs</h1>
+  </div>
+</div>
+<p class="muted overview-sub">These labs are hidden from the dashboard and mallmanac. Restore one to bring it back.</p>
+
+{% if rows %}
+<section class="card">
+  <table class="tbl">
+    <thead><tr><th>Lab</th><th>Owner</th><th>Status</th><th>Archived</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a class="doc-link" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a></td>
+        <td>{% if r.lab.owner %}{{ r.lab.owner.email }}{% else %}Unassigned{% endif %}</td>
+        <td><span class="status-badge status-{{ r.status|replace(' ', '-')|lower }}">{{ r.status }} · {{ r.progress.percent }}%</span></td>
+        <td class="muted">
+          {{ r.lab.archived_at.strftime('%Y-%m-%d') }}{% if r.lab.archived_by %} by {{ r.lab.archived_by.email }}{% endif %}
+        </td>
+        <td>
+          <form method="post" action="{{ rp }}/labs/{{ r.lab.id }}/unarchive"
+                onsubmit="return confirm('Restore “{{ r.lab.name }}” to the dashboard?');">
+            <button class="btn btn-sm" type="submit">Unarchive</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<div class="card empty"><p class="muted">No archived labs.</p></div>
+{% endif %}
+
+{% endblock %}

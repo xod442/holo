@@ -7,3 +7,4 @@ venv/
 data/
 *.key
 .DS_Store
+docker-compose.override.yaml

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Archive Labs · HOLO{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <a class="back" href="{{ rp }}/admin">&larr; Admin console</a>
+    <h1>Archive a Lab</h1>
+  </div>
+  <a class="btn btn-sm ghost" href="{{ rp }}/archived">View archived ({{ archived_count }}) &rarr;</a>
+</div>
+<p class="muted overview-sub">Archiving hides a lab from the dashboard and mallmanac. It's reversible.</p>
+
+{% if rows %}
+<section class="card">
+  <table class="tbl">
+    <thead><tr><th>Lab</th><th>Owner</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a class="doc-link" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a></td>
+        <td>{% if r.lab.owner %}{{ r.lab.owner.email }}{% else %}Unassigned{% endif %}</td>
+        <td><span class="status-badge status-{{ r.status|replace(' ', '-')|lower }}">{{ r.status }} · {{ r.progress.percent }}%</span></td>
+        <td>
+          <form method="post" action="{{ rp }}/labs/{{ r.lab.id }}/archive"
+                onsubmit="return confirm('Archive “{{ r.lab.name }}”? It will be hidden from the dashboard (reversible).');">
+            <button class="btn btn-sm ghost danger" type="submit">Archive</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<div class="card empty"><p class="muted">No active labs to archive.</p></div>
+{% endif %}
+
+{% endblock %}
