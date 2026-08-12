@@ -4,8 +4,19 @@ services:
   holo:
     build: .
     image: holo
-    ports:
-      - "${HOLO_PORT:-8000}:8000"
+    # Host networking so the app uses the host's DNS resolvers and routing —
+    # required for the SMTP forwarder, which is only reachable from the host
+    # network stack. In host mode "ports:" is ignored, so the app binds the host
+    # port directly (keep 9093 so the HPE edge upstream is unchanged).
+    network_mode: host
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${HOLO_PORT:-9093}"]
+    # Corporate DNS resolvers. In host networking the container still uses its
+    # OWN /etc/resolv.conf, which Docker otherwise fills with public DNS
+    # (8.8.8.8) that can't resolve internal names like the SMTP relay. Set
+    # HOLO_DNS1/HOLO_DNS2 in a (gitignored) .env on the prod host.
+    dns:
+      - ${HOLO_DNS1:-8.8.8.8}
+      - ${HOLO_DNS2:-8.8.4.4}
     environment:
       # Required — a fixed key so sessions survive restarts.
       - HOLO_SECRET_KEY=${HOLO_SECRET_KEY:?set HOLO_SECRET_KEY in .env}
@@ -18,6 +29,8 @@ services:
       - HOLO_INVITE_TTL_DAYS=${HOLO_INVITE_TTL_DAYS:-7}
       - HOLO_ADMIN_USERNAME=${HOLO_ADMIN_USERNAME:-admin}
       - HOLO_ADMIN_PASSWORD=${HOLO_ADMIN_PASSWORD:-admin}
+      - HOLO_MANAGER_USERNAME=${HOLO_MANAGER_USERNAME:-manager}
+      - HOLO_MANAGER_PASSWORD=${HOLO_MANAGER_PASSWORD:-manager}
     volumes:
       - holo-data:/data
     restart: unless-stopped
