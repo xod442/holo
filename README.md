@@ -177,6 +177,38 @@ advancing.
 
 ---
 
+## Deploying to production
+
+**Config & secrets**
+- Set a fixed **`HOLO_SECRET_KEY`** (long random hex) in the prod env / secret store — never in git. If unset it's random per boot and sessions drop on every restart.
+- Set **`HOLO_ROOT_PATH`** to the subpath the edge serves (e.g. `/holo`) so links and invite/asset URLs resolve.
+- Keep **`HOLO_COOKIE_SECURE=1`** (needs HTTPS) and a unique **`HOLO_COOKIE_NAME`**.
+- Pre-seed prod logins via `HOLO_ADMIN_*` / `HOLO_MANAGER_*`, or change `admin`/`manager` at first login (both force a change).
+
+**Edge / serving**
+- Serve behind the HPE edge with TLS; ensure the proxy passes `X-Forwarded-Proto/Host` (run uvicorn with `--proxy-headers` if needed).
+- Assets are vendored (HPE logo, Swagger, flatpickr) — don't swap any to a CDN (the edge blocks them).
+- If login bounces with no error and you didn't deploy, suspect the **edge session policy**, not the app.
+
+**Data & backups**
+- Put the `holo-data` volume on persistent storage. Backups land on the **same volume** — set up an off-box copy (mount `HOLO_BACKUP_DIR` externally or download regularly) and **test a restore**.
+
+**Clean start**
+- Start prod with an **empty volume** so only the seeded `admin` + `manager` exist (no demo labs/users).
+
+**Mail**
+- In Admin → Mail forwarder, set the real SMTP relay + `App base URL`, enable it, and send a test.
+
+**Runtime**
+- Container runs as a **non-root user** and deps are **pinned** (see `requirements.txt`).
+- Keep a **single uvicorn worker** (the daily-backup scheduler runs per-process and SQLite is single-writer).
+- Capture/rotate logs.
+
+**Before go-live**
+- Rotate `admin`/`manager` and any passwords typed during setup.
+- Consider login rate-limiting at the edge (the app doesn't throttle). Note: forms have no CSRF token (session cookie is `SameSite=Lax`).
+- Smoke test: login (admin + manager), create lab → Submit → Approve, invite + email a user, reset a password, back up + restore.
+
 ## Notes & conventions
 
 - **Assets are vendored** (HPE logo, Swagger UI, flatpickr) and served from `/static` —
