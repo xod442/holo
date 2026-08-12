@@ -219,7 +219,28 @@ advancing.
 
 ## Status
 
-Auth + invites, gated lifecycle, dashboard/mallmanac/calendar, documents, record owner,
-notifications + SMTP, backups + restore, Swagger, and the admin/manager/member role
-model are all implemented. Not yet built: lab edit/delete UI, off-box backup push,
-bulk-reassign / user-deactivate offboarding tools.
+**Implemented**
+
+- **Auth & roles** — invite-only registration (copy link or email it via the
+  forwarder); admin / manager / member; seeded admin + manager with forced
+  first-login password change; self-service password change; **staff password
+  reset** (temporary password + forced change).
+- **Gated lifecycle** — 8-phase template (approval vs. completion), per-step
+  task notes, phase notes, actual-vs-estimate hours, target dates (flatpickr);
+  manager-only approvals; block/unblock.
+- **Views** — portfolio dashboard (+owner filter), Mallmanac ("You Are Here!"),
+  per-lab month calendar, lab detail workspace.
+- **Content** — document/SharePoint links per lab; changeable record owner.
+- **Notifications** — configurable unauthenticated SMTP forwarder (on the admin
+  console) + phase-triggered notification lists; email test.
+- **Admin** — users/invites, database backups (daily + on-demand) & restore,
+  self-hosted Swagger.
+- **Production readiness** — Dockerized, non-root container, pinned dependencies,
+  vendored assets (no CDN), edge/`ROOT_PATH` aware, deploy checklist above.
+
+**Not yet built**
+
+- Lab edit / delete UI.
+- Automated off-box backup copy (currently manual download or external mount).
+- Offboarding tools: bulk-reassign a departing owner's labs; deactivate a user.
+- Login rate-limiting / CSRF tokens (see production notes).
