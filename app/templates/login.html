@@ -9,7 +9,8 @@
       <input type="text" name="email" required autofocus autocomplete="off">
     </label>
     <label>Password
-      <input type="password" name="password" required autocomplete="off">
+      <input type="password" name="password" required autocomplete="new-password"
+             readonly onfocus="this.removeAttribute('readonly')">
     </label>
     <button class="btn" type="submit">Sign in</button>
   </form>
@@ -23,7 +24,12 @@
       document.querySelectorAll('input[type=password]').forEach(function (el) { el.value = ''; });
     }
     window.addEventListener('pageshow', clearPassword);
-    document.addEventListener('DOMContentLoaded', clearPassword);
+    document.addEventListener('DOMContentLoaded', function () {
+      clearPassword();
+      // Catch autofill that fires after load.
+      setTimeout(clearPassword, 200);
+      setTimeout(clearPassword, 600);
+    });
   })();
 </script>
 {% endblock %}
