@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 
 import os
+import secrets
 import tempfile
 from urllib.parse import quote
 
@@ -13,7 +14,7 @@ from .. import backup, config, notifier
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import User, Invite, VALID_ROLES, ROLE_MEMBER, STAFF_ROLES
-from ..security import generate_token
+from ..security import generate_token, hash_password
 from ..web import templates
 
 router = APIRouter()
@@ -24,7 +25,7 @@ def _register_link(request: Request, token: str) -> str:
 
 
 def _render_admin_home(request, db, user, new_invite_link=None, new_invite_id=None,
-                       msg="", ok=True):
+                       reset_info=None, msg="", ok=True):
     users = db.query(User).order_by(User.created_at).all()
     now = datetime.utcnow()
     pending = (
@@ -44,6 +45,7 @@ def _render_admin_home(request, db, user, new_invite_link=None, new_invite_id=No
             "register_base": f"{str(request.base_url).rstrip('/')}/register?token=",
             "new_invite_link": new_invite_link,
             "new_invite_id": new_invite_id,
+            "reset_info": reset_info,
             "cfg": notifier.get_config(db),
             "backups": backup.list_backups(),
             "msg": msg,
@@ -137,6 +139,26 @@ def restore_existing(name: str, request: Request, db: Session = Depends(get_db),
         )
     db.close()
     return _do_restore(path, name)
+
+
+@router.post("/admin/users/{user_id}/reset-password")
+def reset_password(user_id: int, request: Request, db: Session = Depends(get_db),
+                   user=Depends(get_current_user)):
+    if user is None or user.role not in STAFF_ROLES:
+        return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
+    target = db.get(User, user_id)
+    if target is None:
+        return _render_admin_home(request, db, user, msg="User not found.", ok=False)
+    # Issue a temporary password and force a change at next login.
+    temp = secrets.token_urlsafe(9)
+    target.password_hash = hash_password(temp)
+    target.must_change_password = True
+    db.add(target)
+    db.commit()
+    return _render_admin_home(
+        request, db, user,
+        reset_info={"email": target.email, "temp": temp},
+    )
 
 
 @router.post("/admin/invite")

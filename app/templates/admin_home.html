@@ -5,6 +5,16 @@
 
 {% if msg %}<div class="alert {{ 'success' if ok else 'error' }}">{{ msg }}</div>{% endif %}
 
+{% if reset_info %}
+<div class="alert success">
+  <strong>Password reset for {{ reset_info.email }}.</strong>
+  Share this temporary password securely — they must change it at next login:
+  <div class="copy-row">
+    <input class="copy-input" value="{{ reset_info.temp }}" readonly onclick="this.select()">
+  </div>
+</div>
+{% endif %}
+
 {% if new_invite_link %}
 <div class="alert success">
   <strong>Invitation created.</strong> Copy this link and send it, or email it directly:
@@ -100,13 +110,19 @@
 <section class="card">
   <h2>Users</h2>
   <table class="tbl">
-    <thead><tr><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+    <thead><tr><th>Email</th><th>Role</th><th>Joined</th><th></th></tr></thead>
     <tbody>
     {% for u in users %}
       <tr>
         <td>{{ u.email }}</td>
         <td>{{ u.role }}</td>
         <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+        <td>
+          <form method="post" action="/admin/users/{{ u.id }}/reset-password"
+                onsubmit="return confirm('Reset password for {{ u.email }}? They get a temporary password and must change it at next login.');">
+            <button class="btn-link dark" type="submit">reset password</button>
+          </form>
+        </td>
       </tr>
     {% endfor %}
     </tbody>
