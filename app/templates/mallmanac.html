@@ -14,6 +14,7 @@
   <section class="card mm2-card">
     <div class="mm2-cardhead">
       <a class="lab-name" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a>
+      {% if r.lab.course_id %}<span class="muted">Course {{ r.lab.course_id }}</span>{% endif %}
       <span class="status-badge status-{{ r.status|replace(' ', '-')|lower }}">
         {{ r.status }} · {{ r.progress.percent }}%
       </span>

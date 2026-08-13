@@ -46,6 +46,8 @@ def _ensure_columns() -> None:
             )
 
         lab_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(labs)"))}
+        if "course_id" not in lab_cols:
+            conn.execute(text("ALTER TABLE labs ADD COLUMN course_id VARCHAR NOT NULL DEFAULT ''"))
         if "archived_at" not in lab_cols:
             conn.execute(text("ALTER TABLE labs ADD COLUMN archived_at DATETIME"))
         if "archived_by_id" not in lab_cols:

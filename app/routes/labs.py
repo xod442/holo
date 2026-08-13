@@ -306,6 +306,7 @@ def new_lab_form(request: Request, user=Depends(get_current_user)):
 def create_lab(
     request: Request,
     name: str = Form(...),
+    course_id: str = Form(""),
     description: str = Form(""),
     target_release: str = Form(""),
     db: Session = Depends(get_db),
@@ -321,7 +322,7 @@ def create_lab(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     lab = svc.create_lab(
-        db, name=name, owner_id=user.id,
+        db, name=name, owner_id=user.id, course_id=course_id,
         description=description, target_release=target_release,
     )
     return _back(lab.id)
@@ -451,6 +452,21 @@ def change_owner(lab_id: int, owner_id: str = Form(""),
         if db.get(User, candidate) is not None:
             new_owner_id = candidate
     svc.set_owner(db, lab, new_owner_id)
+    return _back(lab_id)
+
+
+@router.post("/labs/{lab_id}/course-id")
+def set_course_id(lab_id: int, course_id: str = Form(""),
+                  db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return _login()
+    lab = db.get(Lab, lab_id)
+    if lab is None:
+        return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    # Only staff (admin/manager) or the current owner may set the course ID.
+    if user.role not in STAFF_ROLES and lab.owner_id != user.id:
+        return _back(lab_id)
+    svc.set_course_id(db, lab, course_id)
     return _back(lab_id)
 
 

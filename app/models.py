@@ -62,6 +62,8 @@ class Lab(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String, index=True)
+    # HPE course ID number (e.g. "01234G"). Optional so existing labs stay valid.
+    course_id: Mapped[str] = mapped_column(String, default="", index=True)
     description: Mapped[str] = mapped_column(Text, default="")
     target_release: Mapped[str] = mapped_column(String, default="")
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)

@@ -56,6 +56,7 @@
       <div>
         <h3 class="lab-name">{{ c.lab.name }}</h3>
         <div class="lab-meta">
+          {% if c.lab.course_id %}Course {{ c.lab.course_id }} · {% endif %}
           {% if c.lab.owner %}{{ c.lab.owner.email }}{% else %}Unassigned{% endif %}
           {% if c.lab.target_release %} · target {{ c.lab.target_release }}{% endif %}
         </div>

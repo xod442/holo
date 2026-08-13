@@ -11,6 +11,7 @@
     <a class="back" href="{{ rp }}/">&larr; Portfolio</a>
     <h1>{{ lab.name }}</h1>
     <div class="lab-meta">
+      {% if lab.course_id %}Course {{ lab.course_id }} · {% endif %}
       {% if lab.target_release %}target {{ lab.target_release }}{% else %}no target set{% endif %}
     </div>
   </div>
@@ -40,6 +41,21 @@
   </form>
   {% else %}
   <span class="muted">Only the owner or an admin can reassign.</span>
+  {% endif %}
+</section>
+
+<section class="card owner-bar">
+  <div class="owner-current">
+    <span class="owner-label">Course ID</span>
+    <strong>{% if lab.course_id %}{{ lab.course_id }}{% else %}Not set{% endif %}</strong>
+  </div>
+  {% if can_change_owner %}
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/course-id" class="owner-form">
+    <input type="text" name="course_id" value="{{ lab.course_id }}" placeholder="e.g. 01234G">
+    <button class="btn btn-sm ghost" type="submit">Save course ID</button>
+  </form>
+  {% else %}
+  <span class="muted">Only the owner or an admin can set the course ID.</span>
   {% endif %}
 </section>
 
