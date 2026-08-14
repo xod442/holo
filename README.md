@@ -8,8 +8,9 @@ FastAPI + SQLite app, Dockerized, Opal-styled (dark theme, HPE branding).
 - **Mallmanac** — a "You Are Here!" lifecycle map across all labs
 - **Per-lab calendar** of phase target dates
 - **Gated lifecycle** — approval gates vs. completion steps, per-step notes, target dates
-- **Time Warp** — fast-forward a lab that was already completed/near-complete before
-  HOLO existed straight to the right phase, auto-approving everything before it
+- **Time Warp** — admin clicks any sub-process pill on the Mallmanac to fast-forward
+  a lab that was already completed/near-complete before HOLO existed straight to
+  that exact step, auto-approving/completing everything before it
 - **Documents & resources** (SharePoint links) per lab
 - **Notifications** — a configurable SMTP forwarder + phase-triggered team emails
 - **Admin** — users/invites, daily backups + restore, self-hosted Swagger
@@ -44,7 +45,7 @@ HOLO has three roles: **Admin**, **Manager**, and **Member**.
 | Invite users / choose their role | ✅ | ✅ | ❌ |
 | Manage notification lists & SMTP forwarder | ✅ | ✅ | ❌ |
 | Database backup / restore | ✅ | ✅ | ❌ |
-| **Time Warp** a lab to a chosen phase | ✅ | ❌ | ❌ |
+| **Time Warp** a lab to any sub-process step | ✅ | ❌ | ❌ |
 | API docs / Swagger (`/docs`) | ✅ | ✅ | ❌ |
 | System log (`/admin/log`) | ✅ | ✅ | ❌ |
 
@@ -108,15 +109,19 @@ Each pill has its sub-process **tasks** (checkable), a **per-step note** on each
   current phase, hours. Filter by **owner**. Managers also see an **approval queue**.
 - **Mallmanac** (`/mallmanac`) — the "You Are Here!" map: each lab's 8 phase columns
   (4 dev / 4 prod) with task pills; a 📍 pin marks the furthest completed task.
+  Admins can toggle **Time Warp mode** here and click any pill to fast-forward
+  that lab straight to that exact sub-process step.
 - **Lab detail** (`/labs/{id}`) — the workspace: pills, tasks, notes, hours, target
   dates, document links, record owner, and the phase actions.
 - **Lab calendar** (`/labs/{id}/calendar`) — a month grid plotting phases on their
   target dates, with an "unscheduled" list.
-- **Time Warp** (`/admin/time-warp`, admin-only) — pick a lab and the phase it's
-  really at; every earlier phase is marked done (approvals auto-approved, tasks
-  checked off) so a lab that was already built/run before HOLO existed shows
-  correctly everywhere — Mallmanac, dashboard, metrics. Forward-only, and it never
-  sends notification emails (it's a historical correction, not a live event).
+- **Time Warp** (on the Mallmanac, admin-only) — pick the exact sub-process a lab
+  is really at, down to a single task pill (not just a whole phase). Every phase
+  strictly before it is marked done (approvals auto-approved, tasks checked off);
+  its own phase is activated and every task up through the one you picked is
+  checked off too, but the phase itself stays open so you can still gate it
+  normally. Forward-only, and it never sends notification emails (it's a
+  historical correction, not a live event).
 - **System Log** (`/admin/log`, staff-only) — every state-changing action across the
   app, newest first, filterable by user and action, paginated.
 
@@ -271,9 +276,10 @@ advancing.
 - **Gated lifecycle** — 8-phase template (approval vs. completion), per-step
   task notes, phase notes, actual-vs-estimate hours, target dates (flatpickr);
   manager-only approvals; block/unblock.
-- **Time Warp** — admin-only fast-forward of a lab to a chosen phase for labs
-  that predate HOLO, auto-approving/completing everything before it (silent,
-  forward-only, fully audited).
+- **Time Warp** — admin-only, click-any-pill fast-forward on the Mallmanac for
+  labs that predate HOLO, down to a single sub-process step (not just a whole
+  phase), auto-approving/completing everything before it (silent, forward-only,
+  fully audited).
 - **Views** — portfolio dashboard (+owner filter), Mallmanac ("You Are Here!"),
   per-lab month calendar, lab detail workspace.
 - **Content** — document/SharePoint links per lab; changeable record owner.

@@ -100,9 +100,11 @@ def dashboard(request: Request, owner: str = "",
 
 
 @router.get("/mallmanac", response_class=HTMLResponse)
-def mallmanac(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def mallmanac(request: Request, ok: int = 1, msg: str = "",
+             db: Session = Depends(get_db), user=Depends(get_current_user)):
     """Lifecycle map: every lab as a 4-dev / 4-prod column grid of task pills,
-    with a 'you are here' pin on the furthest completed task."""
+    with a 'you are here' pin on the furthest completed task. Admins can
+    Time Warp a lab by clicking any pill (see admin/time-warp.py)."""
     if user is None:
         return _login()
     axis = PHASE_AXIS
@@ -135,7 +137,7 @@ def mallmanac(request: Request, db: Session = Depends(get_db), user=Depends(get_
     return templates.TemplateResponse(
         request,
         "mallmanac.html",
-        {"request": request, "user": user, "rows": rows},
+        {"request": request, "user": user, "rows": rows, "msg": msg, "ok": bool(ok)},
     )
 
 

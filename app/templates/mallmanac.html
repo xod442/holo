@@ -4,10 +4,20 @@
 
 <div class="page-head">
   <h1>Mallmanac</h1>
+  {% if user.role == 'admin' %}
+  <label class="warp-toggle">
+    <input type="checkbox" id="warp-mode-toggle">
+    ⚡ Time Warp mode
+  </label>
+  {% endif %}
 </div>
 <div class="mm2-headline">📍 You Are Here!</div>
 <p class="muted overview-sub">The lifecycle map for every lab — the pin marks the furthest completed
-  sub-process. ✓ = done. Click a lab name to open it.</p>
+  sub-process. ✓ = done. Click a lab name to open it.
+  {% if user.role == 'admin' %}Turn on <strong>Time Warp mode</strong> above, then click any pill to
+  fast-forward that lab to that step (earlier phases are auto-approved/completed; forward-only).{% endif %}</p>
+
+{% if msg %}<div class="alert {{ 'success' if ok else 'error' }}">{{ msg }}</div>{% endif %}
 
 {% if rows %}
   {% for r in rows %}
@@ -33,11 +43,23 @@
             <span class="mm2-code">{{ c.code }}</span>{{ c.name }}
           </div>
           {% for t in c.tasks %}
+          {% if user.role == 'admin' %}
+          <form method="post" action="{{ rp }}/admin/time-warp/{{ r.lab.id }}/{{ t.id }}"
+                class="mm2-task-form" data-lab="{{ r.lab.name }}" data-step="{{ c.name }} / {{ t.title }}">
+            <button type="submit"
+                    class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
+                    title="{{ t.title }}">
+              {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
+              <span class="mm2-tasktext">{{ t.title }}</span>
+            </button>
+          </form>
+          {% else %}
           <div class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
                title="{{ t.title }}">
             {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
             <span class="mm2-tasktext">{{ t.title }}</span>
           </div>
+          {% endif %}
           {% endfor %}
         </div>
         {% endfor %}
@@ -52,4 +74,33 @@
   </div>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+{% if user.role == 'admin' %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var toggle = document.getElementById('warp-mode-toggle');
+  var body = document.body;
+  if (!toggle) return;
+  toggle.addEventListener('change', function () {
+    body.classList.toggle('warp-mode', toggle.checked);
+  });
+  document.querySelectorAll('.mm2-task-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      if (!body.classList.contains('warp-mode')) {
+        e.preventDefault();
+        return;
+      }
+      var msg = 'Time Warp "' + form.dataset.lab + '" to "' + form.dataset.step + '"?\n\n' +
+        'Every earlier phase will be marked done (approvals auto-approved) and every ' +
+        'earlier step in this phase will be checked off. This can\'t be undone from here.';
+      if (!confirm(msg)) {
+        e.preventDefault();
+      }
+    });
+  });
+});
+</script>
+{% endif %}
 {% endblock %}

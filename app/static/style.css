@@ -407,5 +407,17 @@ textarea { font-family: inherit; resize: vertical; }
 .mm2-task.here { border-color: var(--hpe-green); box-shadow: 0 0 0 2px rgba(1,169,130,.35); color: var(--text); background: rgba(1,169,130,.12); }
 .mm2-pin { position: absolute; top: -12px; right: -6px; font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); z-index: 2; }
 
+/* Time Warp: admin-only clickable pills on the Mallmanac. Each pill becomes a
+   <button class="mm2-task"> inside a <form>; reset native button chrome so it
+   still looks exactly like the plain-div pill other roles see. */
+.mm2-task-form { margin: 0; padding: 0; width: 100%; }
+button.mm2-task {
+  appearance: none; -webkit-appearance: none;
+  margin: 0; width: 100%; text-align: left; font: inherit; cursor: default;
+}
+.warp-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); cursor: pointer; user-select: none; }
+body.warp-mode .mm2-task-form button.mm2-task { cursor: pointer; }
+body.warp-mode .mm2-task-form button.mm2-task:hover { outline: 2px solid var(--hpe-green); outline-offset: 1px; }
+
 /* shared sub-headline (used by mallmanac) */
 .overview-sub { margin: -8px 0 16px; }

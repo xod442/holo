@@ -181,32 +181,56 @@ def set_blocked(db: Session, phase: Phase, blocked: bool) -> bool:
 TIME_WARP_NOTE = "Auto-approved via Time Warp"
 
 
-def time_warp(db: Session, lab: Lab, target_position: int, actor_id: int) -> tuple[bool, str]:
-    """Admin/manager tool: fast-forward a lab that was already completed or
-    nearly complete before it was tracked in HOLO — e.g. a lab someone built
-    and ran for years without HOLO existing yet.
-
-    Every phase before `target_position` is marked done (an approval-phase
-    gets an Approval record noting it was auto-approved via Time Warp; a
-    completion phase is marked completed) and all of its tasks are checked
-    off. The target phase itself becomes the lab's active (in-progress)
-    phase; phases after it are left untouched. Forward-only: rejected if
-    `target_position` isn't strictly ahead of the lab's current phase.
-    Silent — unlike real transitions, this never sends notification emails,
-    since it's a historical correction, not a live event.
-    """
+def _flat_tasks(lab: Lab) -> list[Task]:
+    """Every task across the lab, in pipeline order (phase position, then
+    task position within the phase) — the ordering Time Warp advances along."""
     phases = sorted(lab.phases, key=lambda p: p.position)
-    if not (0 <= target_position < len(phases)):
-        return False, "Invalid target phase."
+    return [task for phase in phases for task in sorted(phase.tasks, key=lambda t: t.position)]
 
-    current = current_phase(lab)
-    current_position = current.position if current is not None else len(phases)
-    if target_position <= current_position:
-        return False, "Time Warp can only move a lab forward, past its current phase."
+
+def time_warp_to_task(db: Session, lab: Lab, target_task_id: int,
+                      actor_id: int) -> tuple[bool, str]:
+    """Admin tool: fast-forward a lab that was already completed or nearly
+    complete before it was tracked in HOLO — e.g. a lab someone built and ran
+    for years without HOLO existing yet — to any sub-process pill on the
+    Mallmanac, not just a whole phase.
+
+    Every phase strictly before the target task's phase is marked done (an
+    approval phase gets an Approval record noting it was auto-approved via
+    Time Warp; a completion phase is marked completed) and all of its tasks
+    are checked off. The target task's own phase is activated (in-progress,
+    unblocked if needed) and every task up through the target — but not
+    later ones — is checked off; the phase itself is left in-progress (not
+    auto-approved/completed), so the admin can still gate it normally.
+    Phases after the target are untouched.
+
+    Forward-only: rejected unless the target task is strictly past the
+    lab's current position (the furthest already-done task) and its phase
+    isn't already fully done. Silent — unlike real transitions, this never
+    sends notification emails, since it's a historical correction, not a
+    live event.
+    """
+    flat = _flat_tasks(lab)
+    target_index = next((i for i, t in enumerate(flat) if t.id == target_task_id), None)
+    if target_index is None:
+        return False, "Invalid target step."
+
+    current_index = -1
+    for i, task in enumerate(flat):
+        if task.done:
+            current_index = i
+    if target_index <= current_index:
+        return False, "Time Warp can only move a lab forward, past its current step."
+
+    target_task = flat[target_index]
+    target_phase = target_task.phase
+    if target_phase.state in PHASE_DONE_STATES:
+        return False, "That phase is already complete."
 
     now = datetime.utcnow()
+    phases = sorted(lab.phases, key=lambda p: p.position)
     for phase in phases:
-        if phase.position < target_position:
+        if phase.position < target_phase.position:
             if phase.state not in PHASE_DONE_STATES:
                 if phase.requires_approval:
                     phase.state = PHASE_APPROVED
@@ -221,12 +245,20 @@ def time_warp(db: Session, lab: Lab, target_position: int, actor_id: int) -> tup
                     task.done_by_id = actor_id
                     task.done_at = now
                     db.add(task)
-        elif phase.position == target_position:
-            phase.state = PHASE_IN_PROGRESS
-            db.add(phase)
+
+    if target_phase.state != PHASE_IN_PROGRESS:
+        target_phase.state = PHASE_IN_PROGRESS
+        db.add(target_phase)
+
+    for task in sorted(target_phase.tasks, key=lambda t: t.position):
+        if task.position <= target_task.position and not task.done:
+            task.done = True
+            task.done_by_id = actor_id
+            task.done_at = now
+            db.add(task)
 
     db.commit()
-    return True, f"{lab.name} warped to {phases[target_position].name}."
+    return True, f"{lab.name} warped to {target_phase.name} / {target_task.title}."
 
 
 def set_course_id(db: Session, lab: Lab, course_id: str) -> bool:

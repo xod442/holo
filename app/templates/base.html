@@ -22,7 +22,6 @@
       <a class="navlink" href="{{ rp }}/admin">Admin</a>
       <a class="navlink" href="{{ rp }}/admin/notifications">Notifications</a>
       <a class="navlink" href="{{ rp }}/admin/log">System Log</a>{% endif %}
-      {% if user.role == 'admin' %}<a class="navlink" href="{{ rp }}/admin/time-warp">Time Warp</a>{% endif %}
       <span class="who">{{ user.email }} · {{ user.role }}</span>
       <a class="btn-link" href="{{ rp }}/account/password">Change password</a>
       <form method="post" action="{{ rp }}/logout" class="logout">
