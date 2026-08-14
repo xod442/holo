@@ -208,6 +208,28 @@ class NotificationRecipient(Base):
     list: Mapped["NotificationList"] = relationship("NotificationList", back_populates="recipients")
 
 
+class AuditLog(Base):
+    """Immutable trail of every state-changing action, for the admin System Log.
+
+    `user_email` is a denormalized snapshot (kept even if the user account is
+    later removed); `user_id` may be null for unauthenticated events (e.g. a
+    failed login) so the actor is still identifiable by email/details.
+    """
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    user_email: Mapped[str] = mapped_column(String, default="")
+    action: Mapped[str] = mapped_column(String, index=True)
+    target_type: Mapped[str] = mapped_column(String, default="", index=True)
+    target_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    target_label: Mapped[str] = mapped_column(String, default="")
+    details: Mapped[str] = mapped_column(Text, default="")
+
+    user: Mapped["User | None"] = relationship("User")
+
+
 class PhaseSubscription(Base):
     """Notify a list when a given phase (by name) hits a given event."""
     __tablename__ = "phase_subscriptions"

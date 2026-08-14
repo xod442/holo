@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from .. import notifier
+from .. import audit
 from ..db import get_db
 from ..deps import get_current_user
 from ..labs_template import PHASE_TEMPLATE
@@ -83,6 +84,8 @@ def save_mail(request: Request, host: str = Form(""), port: int = Form(25),
     cfg.enabled = enabled == "1"
     db.add(cfg)
     db.commit()
+    audit.log(db, user, "notifications.mail_config_save", target_type="mail_config",
+              details=f"host={cfg.host}, enabled={cfg.enabled}")
     return _redirect_admin("Mail forwarder settings saved.")
 
 
@@ -93,6 +96,8 @@ def test_mail(request: Request, to_address: str = Form(""),
     if blocked:
         return blocked
     ok, message = notifier.send_test(db, to_address)
+    audit.log(db, user, "notifications.mail_test", target_type="mail_config",
+              target_label=to_address, details=f"sent={ok}")
     return _redirect_admin(message, ok=ok)
 
 
@@ -103,8 +108,11 @@ def create_list(request: Request, name: str = Form(...), description: str = Form
     if blocked:
         return blocked
     if name.strip():
-        db.add(NotificationList(name=name.strip(), description=description.strip()))
+        lst = NotificationList(name=name.strip(), description=description.strip())
+        db.add(lst)
         db.commit()
+        audit.log(db, user, "notifications.list_create", target_type="notification_list",
+                  target_id=lst.id, target_label=lst.name)
     return _redirect("List created.")
 
 
@@ -116,8 +124,11 @@ def delete_list(list_id: int, request: Request,
         return blocked
     lst = db.get(NotificationList, list_id)
     if lst is not None:
+        name = lst.name
         db.delete(lst)
         db.commit()
+        audit.log(db, user, "notifications.list_delete", target_type="notification_list",
+                  target_id=list_id, target_label=name)
     return _redirect("List deleted.")
 
 
@@ -130,8 +141,11 @@ def add_recipient(list_id: int, request: Request, email: str = Form(...),
     email = email.strip().lower()
     lst = db.get(NotificationList, list_id)
     if lst is not None and "@" in email:
-        db.add(NotificationRecipient(list_id=lst.id, email=email))
+        rec = NotificationRecipient(list_id=lst.id, email=email)
+        db.add(rec)
         db.commit()
+        audit.log(db, user, "notifications.recipient_add", target_type="notification_list",
+                  target_id=lst.id, target_label=lst.name, details=f"email={email}")
     return _redirect("Recipient added.")
 
 
@@ -143,8 +157,11 @@ def delete_recipient(list_id: int, rid: int, request: Request,
         return blocked
     rec = db.get(NotificationRecipient, rid)
     if rec is not None and rec.list_id == list_id:
+        email = rec.email
         db.delete(rec)
         db.commit()
+        audit.log(db, user, "notifications.recipient_delete", target_type="notification_list",
+                  target_id=list_id, details=f"email={email}")
     return _redirect("Recipient removed.")
 
 
@@ -165,6 +182,9 @@ def add_subscription(list_id: int, request: Request, phase_name: str = Form(...)
         if exists is None:
             db.add(PhaseSubscription(list_id=lst.id, phase_name=phase_name, event=event))
             db.commit()
+            audit.log(db, user, "notifications.subscription_add",
+                      target_type="notification_list", target_id=lst.id,
+                      target_label=lst.name, details=f"{phase_name} / {event}")
     return _redirect("Subscription added.")
 
 
@@ -176,6 +196,9 @@ def delete_subscription(sub_id: int, request: Request,
         return blocked
     sub = db.get(PhaseSubscription, sub_id)
     if sub is not None:
+        details = f"{sub.phase_name} / {sub.event}"
         db.delete(sub)
         db.commit()
+        audit.log(db, user, "notifications.subscription_delete",
+                  target_type="notification_list", target_id=sub_id, details=details)
     return _redirect("Subscription removed.")

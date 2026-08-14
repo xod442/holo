@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from .. import lab_service as svc
+from .. import audit
 from ..db import get_db
 from ..deps import get_current_user
 from ..labs_template import PHASE_TEMPLATE, STAGE_DEVELOPMENT, TOTAL_ESTIMATED_HOURS
@@ -279,6 +280,8 @@ def archive(lab_id: int, db: Session = Depends(get_db), user=Depends(get_current
     lab = db.get(Lab, lab_id)
     if lab is not None:
         svc.archive_lab(db, lab, user.id)
+        audit.log(db, user, "lab.archive", target_type="lab", target_id=lab.id,
+                  target_label=lab.name)
     return RedirectResponse("/admin/labs", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -290,6 +293,8 @@ def unarchive(lab_id: int, db: Session = Depends(get_db), user=Depends(get_curre
     lab = db.get(Lab, lab_id)
     if lab is not None:
         svc.unarchive_lab(db, lab)
+        audit.log(db, user, "lab.unarchive", target_type="lab", target_id=lab.id,
+                  target_label=lab.name)
     return RedirectResponse("/archived", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -325,6 +330,8 @@ def create_lab(
         db, name=name, owner_id=user.id, course_id=course_id,
         description=description, target_release=target_release,
     )
+    audit.log(db, user, "lab.create", target_type="lab", target_id=lab.id,
+              target_label=lab.name)
     return _back(lab.id)
 
 
@@ -451,7 +458,13 @@ def change_owner(lab_id: int, owner_id: str = Form(""),
             return _back(lab_id)
         if db.get(User, candidate) is not None:
             new_owner_id = candidate
+    new_owner_email = "Unassigned"
+    if new_owner_id is not None:
+        target_user = db.get(User, new_owner_id)
+        new_owner_email = target_user.email if target_user else str(new_owner_id)
     svc.set_owner(db, lab, new_owner_id)
+    audit.log(db, user, "lab.owner_change", target_type="lab", target_id=lab.id,
+              target_label=lab.name, details=f"new owner={new_owner_email}")
     return _back(lab_id)
 
 
@@ -467,6 +480,8 @@ def set_course_id(lab_id: int, course_id: str = Form(""),
     if user.role not in STAFF_ROLES and lab.owner_id != user.id:
         return _back(lab_id)
     svc.set_course_id(db, lab, course_id)
+    audit.log(db, user, "lab.course_id_set", target_type="lab", target_id=lab.id,
+              target_label=lab.name, details=f"course_id={course_id.strip()}")
     return _back(lab_id)
 
 
@@ -477,7 +492,9 @@ def add_link(lab_id: int, url: str = Form(...), label: str = Form(""),
         return _login()
     lab = db.get(Lab, lab_id)
     if lab is not None:
-        svc.add_link(db, lab, url=url, label=label, user_id=user.id)
+        if svc.add_link(db, lab, url=url, label=label, user_id=user.id):
+            audit.log(db, user, "lab.link_add", target_type="lab", target_id=lab.id,
+                      target_label=lab.name, details=f"url={url.strip()}")
     return _back(lab_id)
 
 
@@ -488,7 +505,10 @@ def delete_link(lab_id: int, link_id: int, db: Session = Depends(get_db),
         return _login()
     link = db.get(LabLink, link_id)
     if link is not None and link.lab_id == lab_id:
+        url = link.url
         svc.delete_link(db, link)
+        audit.log(db, user, "lab.link_delete", target_type="lab", target_id=lab_id,
+                  details=f"url={url}")
     return _back(lab_id)
 
 
@@ -508,8 +528,9 @@ def start(lab_id: int, phase_id: int, db: Session = Depends(get_db),
     if user is None:
         return _login()
     lab, phase = _fetch(db, lab_id, phase_id)
-    if phase is not None:
-        svc.start_phase(db, phase, lab)
+    if phase is not None and svc.start_phase(db, phase, lab):
+        audit.log(db, user, "phase.start", target_type="phase", target_id=phase.id,
+                  target_label=f"{lab.name} / {phase.name}")
     return _back(lab_id)
 
 
@@ -519,8 +540,9 @@ def submit(lab_id: int, phase_id: int, db: Session = Depends(get_db),
     if user is None:
         return _login()
     lab, phase = _fetch(db, lab_id, phase_id)
-    if phase is not None:
-        svc.submit_phase(db, phase, lab)
+    if phase is not None and svc.submit_phase(db, phase, lab):
+        audit.log(db, user, "phase.submit", target_type="phase", target_id=phase.id,
+                  target_label=f"{lab.name} / {phase.name}")
     return _back(lab_id)
 
 
@@ -532,8 +554,10 @@ def approve(lab_id: int, phase_id: int, note: str = Form(""),
     if user.role != ROLE_MANAGER:
         return _back(lab_id)  # only the manager holds the gate
     lab, phase = _fetch(db, lab_id, phase_id)
-    if phase is not None:
-        svc.approve_phase(db, phase, lab, approver_id=user.id, note=note)
+    if phase is not None and svc.approve_phase(db, phase, lab, approver_id=user.id, note=note):
+        audit.log(db, user, "phase.approve", target_type="phase", target_id=phase.id,
+                  target_label=f"{lab.name} / {phase.name}",
+                  details=note.strip() if note.strip() else "")
     return _back(lab_id)
 
 
@@ -543,8 +567,9 @@ def complete(lab_id: int, phase_id: int, db: Session = Depends(get_db),
     if user is None:
         return _login()
     lab, phase = _fetch(db, lab_id, phase_id)
-    if phase is not None:
-        svc.complete_phase(db, phase, lab)
+    if phase is not None and svc.complete_phase(db, phase, lab):
+        audit.log(db, user, "phase.complete", target_type="phase", target_id=phase.id,
+                  target_label=f"{lab.name} / {phase.name}")
     return _back(lab_id)
 
 
@@ -554,7 +579,7 @@ async def save_pill(lab_id: int, phase_id: int, request: Request,
     """Save the whole pill at once: hours, phase notes, and every step."""
     if user is None:
         return _login()
-    _, phase = _fetch(db, lab_id, phase_id)
+    lab, phase = _fetch(db, lab_id, phase_id)
     if phase is not None:
         form = await request.form()
         raw_hours = form.get("actual_hours")
@@ -567,10 +592,27 @@ async def save_pill(lab_id: int, phase_id: int, request: Request,
                    "done": f"done_{t.id}" in form}
             for t in phase.tasks
         }
+        # Snapshot before/after so the log records what actually changed.
+        before_done = {t.id: t.done for t in phase.tasks}
+        before = (phase.actual_hours, phase.notes, phase.target_date)
         svc.save_phase(db, phase, actual_hours=hours,
                        notes=str(form.get("notes", "")),
                        target_date=str(form.get("target_date", "")),
                        task_updates=task_updates, user_id=user.id)
+        changes = []
+        if before[0] != phase.actual_hours:
+            changes.append(f"hours {before[0]}->{phase.actual_hours}")
+        if before[1] != phase.notes:
+            changes.append("notes updated")
+        if before[2] != phase.target_date:
+            changes.append(f"target_date->{phase.target_date or '(none)'}")
+        toggled = [t.title for t in phase.tasks if before_done.get(t.id) != t.done]
+        if toggled:
+            changes.append(f"tasks toggled: {', '.join(toggled)}")
+        if changes:
+            audit.log(db, user, "phase.save", target_type="phase", target_id=phase.id,
+                      target_label=f"{lab.name} / {phase.name}",
+                      details="; ".join(changes))
     return _back(lab_id)
 
 
@@ -579,9 +621,10 @@ def block(lab_id: int, phase_id: int, db: Session = Depends(get_db),
           user=Depends(get_current_user)):
     if user is None:
         return _login()
-    _, phase = _fetch(db, lab_id, phase_id)
-    if phase is not None:
-        svc.set_blocked(db, phase, True)
+    lab, phase = _fetch(db, lab_id, phase_id)
+    if phase is not None and svc.set_blocked(db, phase, True):
+        audit.log(db, user, "phase.block", target_type="phase", target_id=phase.id,
+                  target_label=f"{lab.name} / {phase.name}")
     return _back(lab_id)
 
 
@@ -590,9 +633,10 @@ def unblock(lab_id: int, phase_id: int, db: Session = Depends(get_db),
             user=Depends(get_current_user)):
     if user is None:
         return _login()
-    _, phase = _fetch(db, lab_id, phase_id)
-    if phase is not None:
-        svc.set_blocked(db, phase, False)
+    lab, phase = _fetch(db, lab_id, phase_id)
+    if phase is not None and svc.set_blocked(db, phase, False):
+        audit.log(db, user, "phase.unblock", target_type="phase", target_id=phase.id,
+                  target_label=f"{lab.name} / {phase.name}")
     return _back(lab_id)
 
 

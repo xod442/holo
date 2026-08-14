@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from .. import backup, config, notifier
+from .. import audit
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import User, Invite, VALID_ROLES, ROLE_MEMBER, STAFF_ROLES
@@ -80,8 +81,11 @@ def backup_now(request: Request, db: Session = Depends(get_db),
     try:
         path = backup.make_backup()
         import os
+        name = os.path.basename(path)
+        audit.log(db, user, "admin.backup_create", target_type="backup",
+                  target_label=name)
         return RedirectResponse(
-            f"/admin?ok=1&msg={quote('Backup created: ' + os.path.basename(path))}",
+            f"/admin?ok=1&msg={quote('Backup created: ' + name)}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
     except Exception as exc:  # noqa: BLE001 — surface backup failure to the admin
@@ -124,6 +128,9 @@ async def restore_upload(request: Request, file: UploadFile = File(...),
     if user is None or user.role not in STAFF_ROLES:
         return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
     data = await file.read()
+    audit.log(db, user, "admin.restore", target_type="backup",
+              target_label=file.filename or "uploaded file",
+              details="source=upload")
     db.close()  # release the pooled connection before we rewrite the DB file
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     try:
@@ -145,6 +152,8 @@ def restore_existing(name: str, request: Request, db: Session = Depends(get_db),
             f"/admin?ok=0&msg={quote('Backup not found.')}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
+    audit.log(db, user, "admin.restore", target_type="backup", target_label=name,
+              details="source=existing_backup")
     db.close()
     return _do_restore(path, name)
 
@@ -163,6 +172,8 @@ def reset_password(user_id: int, request: Request, db: Session = Depends(get_db)
     target.must_change_password = True
     db.add(target)
     db.commit()
+    audit.log(db, user, "admin.password_reset", target_type="user",
+              target_id=target.id, target_label=target.email)
     return _render_admin_home(
         request, db, user,
         reset_info={"email": target.email, "temp": temp},
@@ -191,6 +202,8 @@ def create_invite(
     )
     db.add(invite)
     db.commit()
+    audit.log(db, user, "admin.invite_create", target_type="invite",
+              target_id=invite.id, target_label=email, details=f"role={role}")
 
     return _render_admin_home(
         request, db, user,
@@ -221,6 +234,9 @@ def email_invite(invite_id: int, request: Request, db: Session = Depends(get_db)
     link = _register_link(request, invite.token)
     ok, message = notifier.send(db, invite.email,
                                 "Your HOLO invitation", _invite_email_body(link))
+    audit.log(db, user, "admin.invite_email", target_type="invite",
+              target_id=invite.id, target_label=invite.email,
+              details=f"sent={ok}")
     return RedirectResponse(
         f"/admin?ok={1 if ok else 0}&msg={quote(message)}",
         status_code=status.HTTP_303_SEE_OTHER,

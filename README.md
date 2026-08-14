@@ -11,6 +11,7 @@ FastAPI + SQLite app, Dockerized, Opal-styled (dark theme, HPE branding).
 - **Documents & resources** (SharePoint links) per lab
 - **Notifications** — a configurable SMTP forwarder + phase-triggered team emails
 - **Admin** — users/invites, daily backups + restore, self-hosted Swagger
+- **System Log** — every state-changing action, by every user, in one filterable audit trail
 
 ---
 
@@ -42,6 +43,7 @@ HOLO has three roles: **Admin**, **Manager**, and **Member**.
 | Manage notification lists & SMTP forwarder | ✅ | ✅ | ❌ |
 | Database backup / restore | ✅ | ✅ | ❌ |
 | API docs / Swagger (`/docs`) | ✅ | ✅ | ❌ |
+| System log (`/admin/log`) | ✅ | ✅ | ❌ |
 
 > **In short:** Members build labs and submit phases for sign-off. Admins run the
 > system (users, backups, notifications, API) but **cannot approve**. The Manager
@@ -107,6 +109,8 @@ Each pill has its sub-process **tasks** (checkable), a **per-step note** on each
   dates, document links, record owner, and the phase actions.
 - **Lab calendar** (`/labs/{id}/calendar`) — a month grid plotting phases on their
   target dates, with an "unscheduled" list.
+- **System Log** (`/admin/log`, staff-only) — every state-changing action across the
+  app, newest first, filterable by user and action, paginated.
 
 ---
 
@@ -243,6 +247,9 @@ advancing.
   console) + phase-triggered notification lists; email test.
 - **Admin** — users/invites, database backups (daily + on-demand) & restore,
   self-hosted Swagger.
+- **System Log** — every login/logout, password change, invite, backup/restore,
+  notification-config edit, and lab/phase transition recorded with actor, target,
+  and details; staff-only, filterable and paginated.
 - **Production readiness** — Dockerized, non-root container, pinned dependencies,
   vendored assets (no CDN), edge/`ROOT_PATH` aware, deploy checklist above.
 

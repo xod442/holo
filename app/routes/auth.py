@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from .. import audit
 from ..db import get_db
 from ..models import User, Invite
 from ..security import hash_password, verify_password
@@ -38,8 +39,11 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.email == email.strip().lower()).first()
+    clean_email = email.strip().lower()
+    user = db.query(User).filter(User.email == clean_email).first()
     if user is None or not verify_password(password, user.password_hash):
+        audit.log(db, None, "auth.login_failed", target_type="user",
+                  target_label=clean_email)
         return templates.TemplateResponse(
             request,
             "login.html",
@@ -47,13 +51,20 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     request.session["user_id"] = user.id
+    audit.log(db, user, "auth.login", target_type="user", target_id=user.id,
+              target_label=user.email)
     if user.must_change_password:
         return RedirectResponse("/account/password", status_code=status.HTTP_303_SEE_OTHER)
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/logout")
-def logout(request: Request):
+def logout(request: Request, db: Session = Depends(get_db)):
+    user_id = request.session.get("user_id")
+    if user_id:
+        user = db.get(User, user_id)
+        audit.log(db, user, "auth.logout", target_type="user", target_id=user_id,
+                  target_label=user.email if user else "")
     request.session.clear()
     return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -115,6 +126,9 @@ def register(
     invite.used_at = datetime.utcnow()
     db.add(user)
     db.commit()
+    db.refresh(user)
+    audit.log(db, user, "auth.register", target_type="user", target_id=user.id,
+              target_label=user.email, details=f"role={user.role}, via invite #{invite.id}")
 
     request.session["user_id"] = user.id
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)

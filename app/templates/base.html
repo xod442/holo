@@ -20,7 +20,8 @@
       <a class="navlink" href="{{ rp }}/labs/new">New Lab</a>
       {% if user.role in ['admin', 'manager'] %}<a class="navlink" href="{{ rp }}/metrics">Metrics</a>
       <a class="navlink" href="{{ rp }}/admin">Admin</a>
-      <a class="navlink" href="{{ rp }}/admin/notifications">Notifications</a>{% endif %}
+      <a class="navlink" href="{{ rp }}/admin/notifications">Notifications</a>
+      <a class="navlink" href="{{ rp }}/admin/log">System Log</a>{% endif %}
       <span class="who">{{ user.email }} · {{ user.role }}</span>
       <a class="btn-link" href="{{ rp }}/account/password">Change password</a>
       <form method="post" action="{{ rp }}/logout" class="logout">

@@ -138,6 +138,15 @@ input:disabled { background: rgba(255, 255, 255, .04); color: var(--muted); }
 .status-complete { background: var(--success-bg); color: var(--hpe-green-dark); }
 .status-blocked { background: var(--danger-bg); color: #ffb4b4; }
 
+/* ---- system log ---- */
+.status-badge.cat-auth { background: rgba(59, 130, 246, .2); color: #7db1ff; }
+.status-badge.cat-account { background: rgba(59, 130, 246, .2); color: #7db1ff; }
+.status-badge.cat-admin { background: var(--danger-bg); color: #ffb4b4; }
+.status-badge.cat-lab { background: var(--success-bg); color: var(--hpe-green-dark); }
+.status-badge.cat-phase { background: rgba(245, 158, 11, .22); color: #f5b13c; }
+.status-badge.cat-notifications { background: rgba(168, 85, 247, .2); color: #cd9cfa; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
+
 .email-invite-form { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 
 /* ---- backup ---- */

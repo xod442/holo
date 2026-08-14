@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import get_current_user
+from .. import audit
 from ..security import hash_password, verify_password
 from ..web import templates
 
@@ -60,6 +61,8 @@ def change_password(
     user.must_change_password = False
     db.add(user)
     db.commit()
+    audit.log(db, user, "account.password_change", target_type="user",
+              target_id=user.id, target_label=user.email)
 
     # Success: advance to the main dashboard. The change flag is now cleared, so
     # the enforcement middleware no longer bounces the request back here.
