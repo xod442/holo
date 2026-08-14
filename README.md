@@ -141,6 +141,29 @@ uvicorn app.main:app --reload
 
 ---
 
+## Testing & CI
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+
+ruff check .                                # lint
+pytest                                      # tests
+pytest --cov --cov-report=term-missing      # tests + coverage
+```
+
+Tests spin up an isolated in-memory SQLite database per test (no `holo.db` on
+disk is touched) and exercise the app through FastAPI's `TestClient` — real
+HTTP requests, real session cookies, real password hashing. Coverage focuses
+on the highest-risk areas: login/logout/invite registration, the forced
+password-change flow, and the phase-gating/RBAC rules (only a Manager may
+approve a submitted phase; staff-only routes reject Members).
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs `ruff` + `pytest`
+on every push and pull request to `main`.
+
+---
+
 ## Configuration
 
 | Var | Default | Purpose |
@@ -252,6 +275,9 @@ advancing.
   and details; staff-only, filterable and paginated.
 - **Production readiness** — Dockerized, non-root container, pinned dependencies,
   vendored assets (no CDN), edge/`ROOT_PATH` aware, deploy checklist above.
+- **Testing & CI** — pytest suite (isolated per-test SQLite DB, `TestClient`)
+  covering auth, forced password change, phase-gating/RBAC, Time Warp, backups,
+  and notifications; `ruff` lint; GitHub Actions runs both on every push/PR to `main`.
 
 **Not yet built**
 

@@ -11,7 +11,6 @@ from ..db import get_db
 from ..deps import get_current_user
 from ..labs_template import PHASE_TEMPLATE
 from ..models import (
-    MailConfig,
     NotificationList,
     NotificationRecipient,
     PhaseSubscription,

@@ -8,3 +8,7 @@ data/
 *.key
 .DS_Store
 docker-compose.override.yaml
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
