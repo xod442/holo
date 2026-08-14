@@ -31,6 +31,8 @@ services:
       - HOLO_ADMIN_PASSWORD=${HOLO_ADMIN_PASSWORD:-admin}
       - HOLO_MANAGER_USERNAME=${HOLO_MANAGER_USERNAME:-manager}
       - HOLO_MANAGER_PASSWORD=${HOLO_MANAGER_PASSWORD:-manager}
+      - HOLO_ADMIN2_USERNAME=${HOLO_ADMIN2_USERNAME:-admin-holo}
+      - HOLO_ADMIN2_PASSWORD=${HOLO_ADMIN2_PASSWORD:-admin-holo}
     volumes:
       - holo-data:/data
     restart: unless-stopped

@@ -30,6 +30,7 @@ def init_db() -> None:
     _ensure_columns()
     seed_default_admin()
     seed_default_manager()
+    seed_second_admin()
     seed_mail_config()
 
 
@@ -111,6 +112,31 @@ def seed_default_manager() -> None:
                 email=config.DEFAULT_MANAGER_USERNAME,
                 password_hash=hash_password(config.DEFAULT_MANAGER_PASSWORD),
                 role=ROLE_MANAGER,
+                must_change_password=True,
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def seed_second_admin() -> None:
+    """Ensure a second admin account exists (same access as the default admin —
+    access is role-based). Seeded by username, independent of seed_default_admin,
+    so it's added even on a database that already has users. Must change
+    password on first login."""
+    from .models import User, ROLE_ADMIN
+    from .security import hash_password
+
+    db = SessionLocal()
+    try:
+        if db.query(User).filter(User.email == config.DEFAULT_ADMIN2_USERNAME).first():
+            return
+        db.add(
+            User(
+                email=config.DEFAULT_ADMIN2_USERNAME,
+                password_hash=hash_password(config.DEFAULT_ADMIN2_PASSWORD),
+                role=ROLE_ADMIN,
                 must_change_password=True,
             )
         )

@@ -49,16 +49,23 @@ HOLO has three roles: **Admin**, **Manager**, and **Member**.
 
 ### Default accounts (first run)
 
-Both are seeded automatically and **must change their password on first login**:
+All three are seeded automatically and **must change their password on first login**:
 
 | Role | Username | Password |
 |------|----------|----------|
 | Admin | `admin` | `admin` |
+| Admin | `admin-holo` | `admin-holo` |
 | Manager | `manager` | `manager` |
 
-Override the seeded values with the `HOLO_ADMIN_*` / `HOLO_MANAGER_*` env vars
-(see [Configuration](#configuration)). Additional users are added by **invitation**
-from the admin console (single-use, expiring links you copy and send).
+`admin-holo` is a second admin account with **identical access** to `admin`
+(access is role-based, not per-user) — useful as a backup/break-glass login or
+for a second administrator. Unlike `admin` (only seeded on a brand-new,
+user-less database), `admin-holo` is seeded by username on every startup, so
+it's added automatically even to an existing database that doesn't have it yet.
+
+Override the seeded values with the `HOLO_ADMIN_*` / `HOLO_ADMIN2_*` / `HOLO_MANAGER_*`
+env vars (see [Configuration](#configuration)). Additional users are added by
+**invitation** from the admin console (single-use, expiring links you copy and send).
 
 ---
 
@@ -116,8 +123,8 @@ docker compose up -d --build
 ```
 
 Open the app (locally mapped to **http://127.0.0.1:8010** via `HOLO_PORT`), sign in as
-`admin` / `admin` (or `manager` / `manager`), and set a new password when prompted.
-Data persists in the `holo-data` volume.
+`admin` / `admin` (or `admin-holo` / `admin-holo`, or `manager` / `manager`), and set a
+new password when prompted. Data persists in the `holo-data` volume.
 
 ### Run it locally (no Docker)
 
@@ -141,6 +148,7 @@ uvicorn app.main:app --reload
 | `HOLO_ROOT_PATH` | `` (root) | Subpath when served behind the edge, e.g. `/holo`. |
 | `HOLO_INVITE_TTL_DAYS` | `7` | Invite link lifetime. |
 | `HOLO_ADMIN_USERNAME` / `HOLO_ADMIN_PASSWORD` | `admin` / `admin` | Seeded admin (fresh DB); must change on first login. |
+| `HOLO_ADMIN2_USERNAME` / `HOLO_ADMIN2_PASSWORD` | `admin-holo` / `admin-holo` | Seeded second admin (same access as admin); seeded by username on every startup; must change on first login. |
 | `HOLO_MANAGER_USERNAME` / `HOLO_MANAGER_PASSWORD` | `manager` / `manager` | Seeded manager (approver); must change on first login. |
 | `HOLO_BACKUP_DIR` | `<db dir>/backups` | Where backups are written (on the volume). |
 | `HOLO_BACKUP_KEEP` | `30` | Number of backups retained. |
@@ -194,7 +202,7 @@ advancing.
 - Put the `holo-data` volume on persistent storage. Backups land on the **same volume** — set up an off-box copy (mount `HOLO_BACKUP_DIR` externally or download regularly) and **test a restore**.
 
 **Clean start**
-- Start prod with an **empty volume** so only the seeded `admin` + `manager` exist (no demo labs/users).
+- Start prod with an **empty volume** so only the seeded `admin` + `admin-holo` + `manager` exist (no demo labs/users).
 
 **Mail**
 - In Admin → Mail forwarder, set the real SMTP relay + `App base URL`, enable it, and send a test.
@@ -205,7 +213,7 @@ advancing.
 - Capture/rotate logs.
 
 **Before go-live**
-- Rotate `admin`/`manager` and any passwords typed during setup.
+- Rotate `admin`/`admin-holo`/`manager` and any passwords typed during setup.
 - Consider login rate-limiting at the edge (the app doesn't throttle). Note: forms have no CSRF token (session cookie is `SameSite=Lax`).
 - Smoke test: login (admin + manager), create lab → Submit → Approve, invite + email a user, reset a password, back up + restore.
 
@@ -222,9 +230,9 @@ advancing.
 **Implemented**
 
 - **Auth & roles** — invite-only registration (copy link or email it via the
-  forwarder); admin / manager / member; seeded admin + manager with forced
-  first-login password change; self-service password change; **staff password
-  reset** (temporary password + forced change).
+  forwarder); admin / manager / member; seeded admin + second admin (`admin-holo`)
+  + manager with forced first-login password change; self-service password
+  change; **staff password reset** (temporary password + forced change).
 - **Gated lifecycle** — 8-phase template (approval vs. completion), per-step
   task notes, phase notes, actual-vs-estimate hours, target dates (flatpickr);
   manager-only approvals; block/unblock.

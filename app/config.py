@@ -30,6 +30,12 @@ DEFAULT_ADMIN_PASSWORD = os.getenv("HOLO_ADMIN_PASSWORD", "admin")
 DEFAULT_MANAGER_USERNAME = os.getenv("HOLO_MANAGER_USERNAME", "manager").strip().lower()
 DEFAULT_MANAGER_PASSWORD = os.getenv("HOLO_MANAGER_PASSWORD", "manager")
 
+# Second predefined admin account (same access as the default admin — access
+# is role-based, not per-user). Seeded if this username doesn't exist yet;
+# must change password on first login.
+DEFAULT_ADMIN2_USERNAME = os.getenv("HOLO_ADMIN2_USERNAME", "admin-holo").strip().lower()
+DEFAULT_ADMIN2_PASSWORD = os.getenv("HOLO_ADMIN2_PASSWORD", "admin-holo")
+
 USING_EPHEMERAL_SECRET = os.getenv("HOLO_SECRET_KEY") is None
 
 # Backups: written to the volume (default alongside the DB) with retention.
