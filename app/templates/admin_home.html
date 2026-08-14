@@ -138,6 +138,12 @@
       <a class="btn btn-sm ghost" href="{{ rp }}/archived">View archived</a>
     </span>
   </div>
+  {% if user.role == 'admin' %}
+  <div class="backup-head">
+    <p class="hint" style="margin:0;">Time Warp a lab that was already completed or nearly complete before HOLO existed, straight to the right phase.</p>
+    <a class="btn btn-sm ghost" href="{{ rp }}/admin/time-warp">Time Warp a lab</a>
+  </div>
+  {% endif %}
 </section>
 
 <section class="card">

@@ -10,24 +10,10 @@ from .. import lab_service as svc
 from .. import audit
 from ..db import get_db
 from ..deps import get_current_user
-from ..labs_template import PHASE_TEMPLATE, STAGE_DEVELOPMENT, TOTAL_ESTIMATED_HOURS
-
-
-def _phase_axis() -> list[dict]:
-    """Left-axis labels: dev-1..dev-4, prod-1..prod-4 in pipeline order."""
-    axis, dev, prod = [], 0, 0
-    for tpl in PHASE_TEMPLATE:
-        if tpl["stage"] == STAGE_DEVELOPMENT:
-            dev += 1
-            code = f"dev-{dev}"
-        else:
-            prod += 1
-            code = f"prod-{prod}"
-        axis.append({"code": code, "name": tpl["name"]})
-    return axis
+from ..labs_template import PHASE_AXIS, TOTAL_ESTIMATED_HOURS
 from ..models import (
     Lab, LabLink, Phase, User,
-    ROLE_MANAGER, STAFF_ROLES, PHASE_AWAITING, PHASE_DONE_STATES,
+    ROLE_MANAGER, STAFF_ROLES, PHASE_AWAITING,
 )
 from ..web import templates
 
@@ -119,7 +105,7 @@ def mallmanac(request: Request, db: Session = Depends(get_db), user=Depends(get_
     with a 'you are here' pin on the furthest completed task."""
     if user is None:
         return _login()
-    axis = _phase_axis()
+    axis = PHASE_AXIS
     labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.created_at).all()
     rows = []
     for lab in labs:
@@ -161,7 +147,7 @@ def metrics(request: Request, db: Session = Depends(get_db), user=Depends(get_cu
         return blocked_redirect
 
     labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.name).all()
-    axis = _phase_axis()
+    axis = PHASE_AXIS
     today = date.today()
     total = len(labs)
 
@@ -376,7 +362,7 @@ def lab_calendar(lab_id: int, request: Request, month: str = "",
     if lab is None:
         return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
-    axis = _phase_axis()
+    axis = PHASE_AXIS
 
     def _view(p):
         return {"name": p.name, "state": p.state, "code": axis[p.position]["code"]}

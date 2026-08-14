@@ -106,3 +106,24 @@ PHASE_TEMPLATE = [
 ]
 
 TOTAL_ESTIMATED_HOURS = sum(p["estimated_hours"] or 0 for p in PHASE_TEMPLATE)
+
+
+def _build_phase_axis() -> list[dict]:
+    """Left-axis labels: dev-1..dev-4, prod-1..prod-4, in pipeline order, each
+    tagged with its 0-based position (matches Phase.position on a created lab)."""
+    axis, dev, prod = [], 0, 0
+    for position, tpl in enumerate(PHASE_TEMPLATE):
+        if tpl["stage"] == STAGE_DEVELOPMENT:
+            dev += 1
+            code = f"dev-{dev}"
+        else:
+            prod += 1
+            code = f"prod-{prod}"
+        axis.append({"code": code, "name": tpl["name"], "position": position})
+    return axis
+
+
+# Static given PHASE_TEMPLATE — computed once and shared by every module that
+# needs to map a phase position to its dev-N/prod-N label (dashboard, calendar,
+# metrics, mallmanac, Time Warp).
+PHASE_AXIS = _build_phase_axis()

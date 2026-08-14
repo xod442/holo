@@ -178,6 +178,57 @@ def set_blocked(db: Session, phase: Phase, blocked: bool) -> bool:
     return True
 
 
+TIME_WARP_NOTE = "Auto-approved via Time Warp"
+
+
+def time_warp(db: Session, lab: Lab, target_position: int, actor_id: int) -> tuple[bool, str]:
+    """Admin/manager tool: fast-forward a lab that was already completed or
+    nearly complete before it was tracked in HOLO — e.g. a lab someone built
+    and ran for years without HOLO existing yet.
+
+    Every phase before `target_position` is marked done (an approval-phase
+    gets an Approval record noting it was auto-approved via Time Warp; a
+    completion phase is marked completed) and all of its tasks are checked
+    off. The target phase itself becomes the lab's active (in-progress)
+    phase; phases after it are left untouched. Forward-only: rejected if
+    `target_position` isn't strictly ahead of the lab's current phase.
+    Silent — unlike real transitions, this never sends notification emails,
+    since it's a historical correction, not a live event.
+    """
+    phases = sorted(lab.phases, key=lambda p: p.position)
+    if not (0 <= target_position < len(phases)):
+        return False, "Invalid target phase."
+
+    current = current_phase(lab)
+    current_position = current.position if current is not None else len(phases)
+    if target_position <= current_position:
+        return False, "Time Warp can only move a lab forward, past its current phase."
+
+    now = datetime.utcnow()
+    for phase in phases:
+        if phase.position < target_position:
+            if phase.state not in PHASE_DONE_STATES:
+                if phase.requires_approval:
+                    phase.state = PHASE_APPROVED
+                    db.add(Approval(phase_id=phase.id, approver_id=actor_id,
+                                    note=TIME_WARP_NOTE))
+                else:
+                    phase.state = PHASE_COMPLETED
+                db.add(phase)
+            for task in phase.tasks:
+                if not task.done:
+                    task.done = True
+                    task.done_by_id = actor_id
+                    task.done_at = now
+                    db.add(task)
+        elif phase.position == target_position:
+            phase.state = PHASE_IN_PROGRESS
+            db.add(phase)
+
+    db.commit()
+    return True, f"{lab.name} warped to {phases[target_position].name}."
+
+
 def set_course_id(db: Session, lab: Lab, course_id: str) -> bool:
     """Set/clear the HPE course ID on a lab."""
     lab.course_id = course_id.strip()
