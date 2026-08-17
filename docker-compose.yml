@@ -33,6 +33,10 @@ services:
       - HOLO_MANAGER_PASSWORD=${HOLO_MANAGER_PASSWORD:-manager}
       - HOLO_ADMIN2_USERNAME=${HOLO_ADMIN2_USERNAME:-admin-holo}
       - HOLO_ADMIN2_PASSWORD=${HOLO_ADMIN2_PASSWORD:-admin-holo}
+      # SSO hand-off with FOCUS (both directions) — empty = disabled. Must
+      # match FOCUS's own SSO_SHARED_SECRET exactly.
+      - SSO_SHARED_SECRET=${SSO_SHARED_SECRET:-}
+      - FOCUS_BASE_URL=${FOCUS_BASE_URL:-http://localhost:9094}
     volumes:
       - holo-data:/data
     restart: unless-stopped

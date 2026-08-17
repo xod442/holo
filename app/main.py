@@ -12,10 +12,13 @@ from . import backup, config
 from .db import SessionLocal, init_db
 from .deps import get_current_user
 from .models import User, STAFF_ROLES
-from .routes import account, admin, auth, labs, logs, notifications, timewarp
+from .routes import account, admin, auth, labs, logs, notifications, sso, timewarp
 
-# Paths a user with a pending password change may still reach.
-_PW_CHANGE_ALLOWED = {"/account/password", "/logout", "/login"}
+# Paths a user with a pending password change may still reach. /sso/focus is
+# included so an incoming hand-off from FOCUS can always establish a fresh
+# session, regardless of whatever session (if any) was previously active —
+# the new session is then subject to the same enforcement on its own next request.
+_PW_CHANGE_ALLOWED = {"/account/password", "/logout", "/login", "/sso/focus"}
 
 
 def _prefix_location(response):
@@ -77,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router)
     app.include_router(notifications.router)
     app.include_router(logs.router)
+    app.include_router(sso.router)
     app.include_router(timewarp.router)
     app.include_router(labs.router)
 

@@ -193,6 +193,24 @@ on every push and pull request to `main`.
 | `HOLO_BACKUP_DIR` | `<db dir>/backups` | Where backups are written (on the volume). |
 | `HOLO_BACKUP_KEEP` | `30` | Number of backups retained. |
 | `HOLO_PORT` | `8000` | Host port mapping (Docker). |
+| `SSO_SHARED_SECRET` | *(empty — disabled)* | Enables the `/sso/focus` single sign-on hand-off from FOCUS; must match FOCUS's own `SSO_SHARED_SECRET` exactly. |
+
+---
+
+## Single sign-on from FOCUS
+
+FOCUS (same host, port 9094 by default) can hand off an already-authenticated
+user straight into HOLO: it generates a short-lived (60s), signed token
+containing just that user's email and redirects to `GET /sso/focus?token=...`.
+HOLO independently verifies the signature and, if a HOLO account with that
+same email exists, logs them in with no separate login step — no account is
+ever auto-created. An invalid/expired/mismatched-secret token, or no matching
+email, redirects to `/login` with a clear error message instead.
+
+Requires `SSO_SHARED_SECRET` to be set to the exact same value in both apps'
+`.env` files — a secret shared between the two apps, **not** either app's own
+`HOLO_SECRET_KEY`/`FOCUS_SECRET_KEY` (which sign session cookies, not this
+hand-off). Leave it empty to disable the route entirely.
 
 ---
 
@@ -232,6 +250,7 @@ advancing.
 - Set **`HOLO_ROOT_PATH`** to the subpath the edge serves (e.g. `/holo`) so links and invite/asset URLs resolve.
 - Keep **`HOLO_COOKIE_SECURE=1`** (needs HTTPS) and a unique **`HOLO_COOKIE_NAME`**.
 - Pre-seed prod logins via `HOLO_ADMIN_*` / `HOLO_MANAGER_*`, or change `admin`/`manager` at first login (both force a change).
+- If enabling the FOCUS SSO hand-off, set **`SSO_SHARED_SECRET`** to the same long random value in both apps' prod env.
 
 **Edge / serving**
 - Serve behind the HPE edge with TLS; ensure the proxy passes `X-Forwarded-Proto/Host` (run uvicorn with `--proxy-headers` if needed).

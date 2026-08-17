@@ -41,3 +41,20 @@ USING_EPHEMERAL_SECRET = os.getenv("HOLO_SECRET_KEY") is None
 # Backups: written to the volume (default alongside the DB) with retention.
 BACKUP_DIR = os.getenv("HOLO_BACKUP_DIR", str(Path(DB_PATH).parent / "backups"))
 BACKUP_KEEP = int(os.getenv("HOLO_BACKUP_KEEP", "30"))
+
+# ── Single sign-on hand-off with FOCUS (same host, separate app/DB) ─────────
+# Works both ways:
+# - Incoming (from FOCUS): FOCUS generates a short-lived, signed token (the
+#   user's own email, nothing else) and redirects here. We independently
+#   verify the signature (shared secret, set identically in both apps' env —
+#   NOT the same as either app's own SECRET_KEY) and log the person in if a
+#   matching HOLO account exists.
+# - Outgoing (to FOCUS): the "FOCUS" nav button does the same thing in
+#   reverse, generating a token for the current HOLO user and redirecting to
+#   FOCUS's own accepting route.
+# Empty secret = both hand-off directions are disabled (buttons hidden,
+# routes reject everything).
+SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "").strip()
+SSO_SALT = "focus-holo-sso"
+SSO_TOKEN_MAX_AGE = 60  # seconds — must match the value FOCUS signs with
+FOCUS_BASE_URL = os.getenv("FOCUS_BASE_URL", "http://localhost:9094").rstrip("/")
