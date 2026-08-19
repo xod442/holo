@@ -37,6 +37,9 @@ services:
       # match FOCUS's own SSO_SHARED_SECRET exactly.
       - SSO_SHARED_SECRET=${SSO_SHARED_SECRET:-}
       - FOCUS_BASE_URL=${FOCUS_BASE_URL:-http://localhost:9094}
+      # Read-only JSON API (/api/v1/...) for external integrations (VISTA).
+      # Empty = disabled. Must match the key VISTA is configured to send.
+      - HOLO_API_KEY=${HOLO_API_KEY:-}
     volumes:
       - holo-data:/data
     restart: unless-stopped

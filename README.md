@@ -194,6 +194,7 @@ on every push and pull request to `main`.
 | `HOLO_BACKUP_KEEP` | `30` | Number of backups retained. |
 | `HOLO_PORT` | `8000` | Host port mapping (Docker). |
 | `SSO_SHARED_SECRET` | *(empty — disabled)* | Enables the `/sso/focus` single sign-on hand-off from FOCUS; must match FOCUS's own `SSO_SHARED_SECRET` exactly. |
+| `HOLO_API_KEY` | *(empty — disabled)* | Enables the read-only `/api/v1/...` JSON API (see below). Callers send it in an `X-API-Key` header. |
 
 ---
 
@@ -211,6 +212,27 @@ Requires `SSO_SHARED_SECRET` to be set to the exact same value in both apps'
 `.env` files — a secret shared between the two apps, **not** either app's own
 `HOLO_SECRET_KEY`/`FOCUS_SECRET_KEY` (which sign session cookies, not this
 hand-off). Leave it empty to disable the route entirely.
+
+---
+
+## Read-only API for external integrations
+
+`/api/v1/...` is a small, read-only JSON API for programmatic access — used by
+**VISTA** to build its cross-application executive dashboard. It's guarded by a
+static key (`HOLO_API_KEY`) in an `X-API-Key` header, entirely separate from
+the session-cookie auth used everywhere else. Leave `HOLO_API_KEY` empty to
+disable it (every route 404s).
+
+| Route | Returns |
+|---|---|
+| `GET /api/v1/summary` | Portfolio-wide counts: released/in-progress/blocked/awaiting/overdue labs, pipeline %, hours, the phase funnel, per-owner lab counts, pending invites, user count. |
+| `GET /api/v1/labs` | Every active lab with its status, % complete, current phase, owner, and hours. |
+| `GET /api/v1/users` | The user roster (id, email, role, forced-password-change flag) — never password hashes. |
+| `GET /api/v1/activity?days=7\|30\|90` | Per-user audit-log activity count and most recent login over the window. |
+
+```bash
+curl -H "X-API-Key: $HOLO_API_KEY" http://localhost:9093/api/v1/summary
+```
 
 ---
 
