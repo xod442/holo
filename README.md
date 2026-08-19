@@ -4,6 +4,9 @@ HOLO tracks hands-on labs (workshops) through HPE Technical Enablement's 8-phase
 gated production pipeline — from first concept to a production-ready course. It's a
 FastAPI + SQLite app, Dockerized, Opal-styled (dark theme, HPE branding).
 
+> **Design:** see [`DESIGN.md`](DESIGN.md) for the shared token reference and
+> UI process/checklist used across opal, opal-mist, holo, focus, and vista.
+
 - **Portfolio dashboard** with an 8-segment progress bar per lab + owner filter
 - **Mallmanac** — a "You Are Here!" lifecycle map across all labs
 - **Per-lab calendar** of phase target dates
