@@ -108,8 +108,8 @@ def summary(db: Session = Depends(get_db)):
 
 @router.get("/labs", dependencies=[Depends(require_api_key)])
 def labs_list(db: Session = Depends(get_db)):
-    """Every active lab with its current status/progress — the dashboard cards,
-    in JSON."""
+    """Every active lab with its current status/progress/abstract — the
+    dashboard cards, in JSON."""
     labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.name).all()
     today = date.today()
     rows = []
@@ -127,6 +127,7 @@ def labs_list(db: Session = Depends(get_db)):
             "id": lab.id,
             "name": lab.name,
             "course_id": lab.course_id,
+            "abstract": lab.abstract,
             "owner_email": lab.owner.email if lab.owner else None,
             "status": svc.lab_status(lab),
             "percent": prog["percent"],

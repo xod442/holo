@@ -53,6 +53,12 @@ def _ensure_columns() -> None:
             conn.execute(text("ALTER TABLE labs ADD COLUMN archived_at DATETIME"))
         if "archived_by_id" not in lab_cols:
             conn.execute(text("ALTER TABLE labs ADD COLUMN archived_by_id INTEGER"))
+        if "abstract" not in lab_cols:
+            if "description" in lab_cols:
+                # Column renamed description -> abstract; keep existing text.
+                conn.execute(text("ALTER TABLE labs RENAME COLUMN description TO abstract"))
+            else:
+                conn.execute(text("ALTER TABLE labs ADD COLUMN abstract TEXT NOT NULL DEFAULT ''"))
 
         task_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(tasks)"))}
         if "note" not in task_cols:

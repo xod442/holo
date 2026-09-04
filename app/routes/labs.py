@@ -300,7 +300,7 @@ def create_lab(
     request: Request,
     name: str = Form(...),
     course_id: str = Form(""),
-    description: str = Form(""),
+    abstract: str = Form(""),
     target_release: str = Form(""),
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
@@ -316,7 +316,7 @@ def create_lab(
         )
     lab = svc.create_lab(
         db, name=name, owner_id=user.id, course_id=course_id,
-        description=description, target_release=target_release,
+        abstract=abstract, target_release=target_release,
     )
     audit.log(db, user, "lab.create", target_type="lab", target_id=lab.id,
               target_label=lab.name)
@@ -470,6 +470,23 @@ def set_course_id(lab_id: int, course_id: str = Form(""),
     svc.set_course_id(db, lab, course_id)
     audit.log(db, user, "lab.course_id_set", target_type="lab", target_id=lab.id,
               target_label=lab.name, details=f"course_id={course_id.strip()}")
+    return _back(lab_id)
+
+
+@router.post("/labs/{lab_id}/abstract")
+def set_abstract(lab_id: int, abstract: str = Form(""),
+                 db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return _login()
+    lab = db.get(Lab, lab_id)
+    if lab is None:
+        return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    # Only staff (admin/manager) or the current owner may set the abstract.
+    if user.role not in STAFF_ROLES and lab.owner_id != user.id:
+        return _back(lab_id)
+    svc.set_abstract(db, lab, abstract)
+    audit.log(db, user, "lab.abstract_set", target_type="lab", target_id=lab.id,
+              target_label=lab.name)
     return _back(lab_id)
 
 

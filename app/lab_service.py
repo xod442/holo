@@ -34,14 +34,14 @@ from .models import (
 
 
 def create_lab(db: Session, *, name: str, owner_id: int | None,
-               description: str = "", target_release: str = "",
+               abstract: str = "", target_release: str = "",
                course_id: str = "") -> Lab:
     """Create a lab and clone the phase template onto it (first phase active)."""
     lab = Lab(
         name=name.strip(),
         owner_id=owner_id,
         course_id=course_id.strip(),
-        description=description.strip(),
+        abstract=abstract.strip(),
         target_release=target_release.strip(),
     )
     db.add(lab)
@@ -264,6 +264,14 @@ def time_warp_to_task(db: Session, lab: Lab, target_task_id: int,
 def set_course_id(db: Session, lab: Lab, course_id: str) -> bool:
     """Set/clear the HPE course ID on a lab."""
     lab.course_id = course_id.strip()
+    db.add(lab)
+    db.commit()
+    return True
+
+
+def set_abstract(db: Session, lab: Lab, abstract: str) -> bool:
+    """Set/clear the workshop abstract on a lab."""
+    lab.abstract = abstract.strip()
     db.add(lab)
     db.commit()
     return True

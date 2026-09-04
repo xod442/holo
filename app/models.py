@@ -64,7 +64,9 @@ class Lab(Base):
     name: Mapped[str] = mapped_column(String, index=True)
     # HPE course ID number (e.g. "01234G"). Optional so existing labs stay valid.
     course_id: Mapped[str] = mapped_column(String, default="", index=True)
-    description: Mapped[str] = mapped_column(Text, default="")
+    # Short workshop abstract/summary, shown right under the title on the
+    # detail page and exported via the /api/v1 integration API.
+    abstract: Mapped[str] = mapped_column(Text, default="")
     target_release: Mapped[str] = mapped_column(String, default="")
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

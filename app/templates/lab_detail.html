@@ -18,7 +18,18 @@
   <span class="status-badge status-{{ status|replace(' ', '-')|lower }}">{{ status }}</span>
 </div>
 
-{% if lab.description %}<p class="lab-desc">{{ lab.description }}</p>{% endif %}
+{% if lab.abstract or can_change_owner %}
+<section class="card abstract-card">
+  <span class="owner-label">Abstract</span>
+  {% if lab.abstract %}<p class="lab-desc">{{ lab.abstract }}</p>{% endif %}
+  {% if can_change_owner %}
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/abstract" class="abstract-form">
+    <textarea name="abstract" rows="3" placeholder="Short summary of the workshop for the abstract/catalog">{{ lab.abstract }}</textarea>
+    <button class="btn btn-sm ghost" type="submit">Save abstract</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
 
 <div class="lab-toolbar">
   <a class="btn btn-sm ghost" href="{{ rp }}/labs/{{ lab.id }}/calendar">📅 Calendar view</a>
