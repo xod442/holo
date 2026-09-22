@@ -68,8 +68,10 @@ h2 { font-size: 1.05rem; margin: 0 0 14px; }
   box-shadow: 0 2px 10px rgba(0, 0, 0, .35);
 }
 .auth-card { max-width: 380px; margin: 8vh auto 0; }
-.login-guide-link { color: var(--hpe-green-dark); font-weight: 700; }
+.login-guide-link:link,
+.login-guide-link:visited { color: var(--hpe-green-dark); font-weight: 700; }
 .login-guide-link:hover { color: #65f2c5; }
+.login-guide-link:focus-visible { color: #65f2c5; outline: 2px solid var(--hpe-green); }
 
 label { display: block; margin-bottom: 14px; font-size: .85rem; color: var(--muted); }
 input, select, textarea {
