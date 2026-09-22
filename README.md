@@ -6,6 +6,9 @@ FastAPI + SQLite app, Dockerized, Opal-styled (dark theme, HPE branding).
 
 > **Design:** see [`DESIGN.md`](DESIGN.md) for the shared token reference and
 > UI process/checklist used across opal, opal-mist, holo, focus, and vista.
+>
+> **User guide:** see [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) for day-to-day
+> instructions for Members, Managers, and Admins.
 
 - **Portfolio dashboard** with an 8-segment progress bar per lab + owner filter
 - **Mallmanac** — a "You Are Here!" lifecycle map across all labs
