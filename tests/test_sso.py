@@ -136,3 +136,68 @@ def test_focus_button_shown_when_sso_configured(client, member_user, monkeypatch
     resp = client.get("/")
     assert "focus-link" in resp.text
     assert "/go/focus" in resp.text
+
+
+def test_vista_authenticates_against_holo_and_returns_signed_token(
+    client, db_session, monkeypatch
+):
+    monkeypatch.setattr(config, "SSO_SHARED_SECRET", "shared-test-secret")
+    monkeypatch.setattr(config, "VISTA_AUTH_SECRET", "vista-auth-secret")
+    user = make_user(db_session, email="vista@test.local", role=ROLE_MEMBER)
+
+    resp = client.post(
+        "/sso/vista/authenticate",
+        headers={"X-VISTA-Auth": "vista-auth-secret"},
+        json={"email": user.email, "password": "correct-horse-battery"},
+    )
+
+    assert resp.status_code == 200
+    payload = URLSafeTimedSerializer(
+        "shared-test-secret", salt=config.SSO_SALT
+    ).loads(resp.json()["token"])
+    assert payload == {"email": user.email, "role": ROLE_MEMBER}
+
+
+def test_vista_authentication_rejects_bad_credentials(client, monkeypatch):
+    monkeypatch.setattr(config, "SSO_SHARED_SECRET", "shared-test-secret")
+    monkeypatch.setattr(config, "VISTA_AUTH_SECRET", "vista-auth-secret")
+
+    resp = client.post(
+        "/sso/vista/authenticate",
+        headers={"X-VISTA-Auth": "vista-auth-secret"},
+        json={"email": "unknown@test.local", "password": "wrong"},
+    )
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid email or password"
+
+
+def test_vista_authentication_hides_endpoint_with_wrong_broker_secret(client, monkeypatch):
+    monkeypatch.setattr(config, "SSO_SHARED_SECRET", "shared-test-secret")
+    monkeypatch.setattr(config, "VISTA_AUTH_SECRET", "vista-auth-secret")
+
+    resp = client.post(
+        "/sso/vista/authenticate",
+        headers={"X-VISTA-Auth": "wrong"},
+        json={"email": "member@test.local", "password": "password123"},
+    )
+
+    assert resp.status_code == 404
+
+
+def test_sso_from_vista_logs_into_holo_and_continues_to_focus(
+    client, db_session, monkeypatch
+):
+    monkeypatch.setattr(config, "SSO_SHARED_SECRET", "shared-test-secret")
+    monkeypatch.setattr(config, "FOCUS_BASE_URL", "http://localhost:9094")
+    monkeypatch.setattr(config, "VISTA_BASE_URL", "http://localhost:9098")
+    user = make_user(db_session, email="vista-flow@test.local", role=ROLE_MEMBER)
+    token = _token_for(user.email)
+
+    resp = client.get(f"/sso/vista?token={token}", follow_redirects=False)
+
+    assert resp.status_code == 303
+    location = resp.headers["location"]
+    assert location.startswith("http://localhost:9094/sso/holo?")
+    assert "next=http%3A%2F%2Flocalhost%3A9098%2Fauth%2Fcallback" in location
+    assert client.get("/", follow_redirects=False).status_code == 200

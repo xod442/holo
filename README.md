@@ -200,6 +200,8 @@ on every push and pull request to `main`.
 | `HOLO_BACKUP_KEEP` | `30` | Number of backups retained. |
 | `HOLO_PORT` | `8000` | Host port mapping (Docker). |
 | `SSO_SHARED_SECRET` | *(empty — disabled)* | Enables the `/sso/focus` single sign-on hand-off from FOCUS; must match FOCUS's own `SSO_SHARED_SECRET` exactly. |
+| `VISTA_BASE_URL` | `http://localhost:9098` | Browser-reachable VISTA-2 URL used after the HOLO → FOCUS sign-on chain. |
+| `VISTA_AUTH_SECRET` | *(empty — disabled)* | Separate server-to-server secret allowing VISTA-2 to ask HOLO to verify credentials; must match VISTA-2. |
 | `HOLO_API_KEY` | *(empty — disabled)* | Enables the read-only `/api/v1/...` JSON API (see below). Callers send it in an `X-API-Key` header. |
 
 ---
@@ -218,6 +220,13 @@ Requires `SSO_SHARED_SECRET` to be set to the exact same value in both apps'
 `.env` files — a secret shared between the two apps, **not** either app's own
 `HOLO_SECRET_KEY`/`FOCUS_SECRET_KEY` (which sign session cookies, not this
 hand-off). Leave it empty to disable the route entirely.
+
+VISTA-2 can also use HOLO as its identity authority. VISTA-2 submits credentials
+to HOLO's secret-protected broker endpoint; HOLO verifies its own password hash
+and returns only a short-lived signed identity token. VISTA-2 never reads
+HOLO's SQLite database or receives password hashes. This flow requires
+`VISTA_AUTH_SECRET` to match VISTA-2 and `VISTA_BASE_URL` to point to the
+browser-visible VISTA-2 deployment.
 
 ---
 

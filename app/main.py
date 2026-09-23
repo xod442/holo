@@ -18,7 +18,7 @@ from .routes import account, admin, api, auth, labs, logs, notifications, sso, t
 # included so an incoming hand-off from FOCUS can always establish a fresh
 # session, regardless of whatever session (if any) was previously active —
 # the new session is then subject to the same enforcement on its own next request.
-_PW_CHANGE_ALLOWED = {"/account/password", "/logout", "/login", "/sso/focus"}
+_PW_CHANGE_ALLOWED = {"/account/password", "/logout", "/login", "/sso/focus", "/sso/vista"}
 
 
 def _prefix_location(response):

@@ -58,6 +58,10 @@ SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "").strip()
 SSO_SALT = "focus-holo-sso"
 SSO_TOKEN_MAX_AGE = 60  # seconds — must match the value FOCUS signs with
 FOCUS_BASE_URL = os.getenv("FOCUS_BASE_URL", "http://localhost:9094").rstrip("/")
+VISTA_BASE_URL = os.getenv("VISTA_BASE_URL", "http://localhost:9098").rstrip("/")
+# Server-to-server credential broker secret used only by VISTA-2. VISTA-2
+# never reads HOLO's database or receives password hashes.
+VISTA_AUTH_SECRET = os.getenv("VISTA_AUTH_SECRET", "").strip()
 
 # ── Read-only JSON API (/api/v1/...) for external integrations, e.g. the ──
 # VISTA executive dashboard. Guarded by a static key in the X-API-Key header,
