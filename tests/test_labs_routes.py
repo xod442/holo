@@ -13,6 +13,25 @@ def test_dashboard_requires_login(client):
     assert resp.headers["location"] == "/login"
 
 
+def test_walter_desktop_renders_without_holo_shell(client):
+    resp = client.get("/walter", follow_redirects=False)
+
+    assert resp.status_code == 200
+    assert "<title>Walter</title>" in resp.text
+    assert 'href="/assets/walter.css?v=' in resp.text
+    assert 'src="/assets/walter.js?v=' in resp.text
+    assert 'id="browser-window"' in resp.text
+    assert 'id="files-window"' in resp.text
+    assert 'id="ide-window"' in resp.text
+    assert 'id="ide-frame"' in resp.text
+    assert 'id="clock-window"' in resp.text
+    assert 'id="eyes-window"' in resp.text
+    assert 'id="calculator-window"' in resp.text
+    assert 'id="notepad-window"' in resp.text
+    assert 'id="terminal-window"' in resp.text
+    assert 'id="browser-external"' in resp.text
+
+
 def test_create_lab_requires_name(client, member_user):
     login(client, member_user)
     resp = client.post("/labs", data={"name": "   "}, follow_redirects=False)

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Walter</title>
+  <link rel="stylesheet" href="{{ rp }}/assets/walter.css?v=20260923-5">
+</head>
+<body>
+  <main class="desktop" aria-label="Walter desktop">
+    <header class="menu-bar">
+      <button class="brand-menu" data-open-window="browser-window" aria-label="Open Walter browser">W</button>
+      <span class="workspace-name">Walter</span>
+      <nav class="menu-actions" aria-label="Desktop actions">
+        <button type="button" data-action="arrange">Arrange windows</button>
+        <button type="button" data-open-window="ide-window">Open IDE</button>
+      </nav>
+      <div class="status-area">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Online</span>
+        <time id="desktop-clock" aria-live="polite"></time>
+      </div>
+    </header>
+
+    <section class="desktop-icons" aria-label="Applications">
+      <button class="desktop-icon" data-open-window="browser-window"><span class="icon-mark browser-icon" aria-hidden="true">◎</span><span>Browser</span></button>
+      <button class="desktop-icon" data-open-window="files-window"><span class="icon-mark files-icon" aria-hidden="true">▰</span><span>Files</span></button>
+      <button class="desktop-icon" data-open-window="ide-window"><span class="icon-mark ide-icon" aria-hidden="true">&lt;/&gt;</span><span>IDE</span></button>
+      <button class="desktop-icon" data-open-window="clock-window"><span class="icon-mark clock-icon" aria-hidden="true">◷</span><span>Clock</span></button>
+      <button class="desktop-icon" data-open-window="eyes-window"><span class="icon-mark eyes-icon" aria-hidden="true">◉</span><span>Eyes</span></button>
+      <button class="desktop-icon" data-open-window="calculator-window"><span class="icon-mark calculator-icon" aria-hidden="true">±</span><span>Calculator</span></button>
+      <button class="desktop-icon" data-open-window="notepad-window"><span class="icon-mark notepad-icon" aria-hidden="true">✎</span><span>Notepad</span></button>
+      <button class="desktop-icon" data-open-window="terminal-window"><span class="icon-mark terminal-icon" aria-hidden="true">›_</span><span>Terminal</span></button>
+    </section>
+
+    <section class="window browser-window" id="browser-window" data-window tabindex="-1" aria-labelledby="browser-title">
+      <header class="window-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close Browser"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize Browser"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize Browser"></button>
+        </div>
+        <span id="browser-title">Browser</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="browser-toolbar">
+        <button type="button" id="browser-back" aria-label="Go back">‹</button>
+        <form id="browser-form">
+          <label class="sr-only" for="browser-address">Web address or search</label>
+          <input id="browser-address" value="https://example.com" autocomplete="off">
+        </form>
+        <button type="button" id="browser-go">Go</button>
+        <a id="browser-external" href="https://example.com" target="_blank" rel="noopener">Open ↗</a>
+      </div>
+      <p class="browser-message" id="browser-message">Browse here, or use Open for sites that block in-window display.</p>
+      <iframe id="browser-frame" title="Walter browser content" src="https://example.com"></iframe>
+    </section>
+
+    <section class="window files-window" id="files-window" data-window tabindex="-1" aria-labelledby="files-title">
+      <header class="window-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close Files"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize Files"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize Files"></button>
+        </div>
+        <span id="files-title">Files</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="file-toolbar"><strong>My files</strong><button type="button" id="new-file">+ New file</button></div>
+      <div class="file-list" id="file-list" aria-live="polite">
+        <button class="file-row"><span class="file-icon folder">▰</span><span><strong>Projects</strong><small>4 items</small></span><span>›</span></button>
+        <button class="file-row"><span class="file-icon document">▤</span><span><strong>Ideas.txt</strong><small>Updated today</small></span><span>···</span></button>
+        <button class="file-row"><span class="file-icon image">◈</span><span><strong>Inspiration</strong><small>12 images</small></span><span>›</span></button>
+        <button class="file-row"><span class="file-icon document">▤</span><span><strong>Weekend plan.md</strong><small>Updated Friday</small></span><span>···</span></button>
+      </div>
+      <p class="file-note">This is a local demo file manager. Your files stay on your device.</p>
+    </section>
+
+    <section class="window ide-window" id="ide-window" data-window tabindex="-1" aria-labelledby="ide-title">
+      <header class="window-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close IDE"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize IDE"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize IDE"></button>
+        </div>
+        <span id="ide-title">Walter IDE</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="ide-content">
+        <div class="ide-toolbar">
+          <div class="ide-tabs" role="tablist" aria-label="Code files">
+            <button type="button" class="active" data-ide-tab="html" role="tab" aria-selected="true">index.html</button>
+            <button type="button" data-ide-tab="css" role="tab" aria-selected="false">style.css</button>
+            <button type="button" data-ide-tab="js" role="tab" aria-selected="false">script.js</button>
+          </div>
+          <div class="ide-actions">
+            <span id="ide-status">Saved locally</span>
+            <button type="button" id="ide-reset">Reset</button>
+            <button type="button" id="ide-run">▶ Run</button>
+          </div>
+        </div>
+        <div class="ide-workspace">
+          <div class="ide-editor">
+            <label class="sr-only" for="ide-code">Code editor</label>
+            <textarea id="ide-code" spellcheck="false" aria-label="Code editor"></textarea>
+          </div>
+          <div class="ide-preview">
+            <div class="ide-preview-label">Preview</div>
+            <iframe id="ide-frame" title="IDE preview" sandbox="allow-scripts"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="window clock-window" id="clock-window" data-window tabindex="-1" aria-labelledby="clock-title">
+      <header class="window-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close Clock"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize Clock"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize Clock"></button>
+        </div>
+        <span id="clock-title">Clock</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="clock-content"><time id="large-clock"></time><span id="large-date"></span></div>
+    </section>
+
+    <section class="window eyes-window" id="eyes-window" data-window tabindex="-1" aria-labelledby="eyes-title">
+      <header class="window-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close Googly Eyes"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize Googly Eyes"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize Googly Eyes"></button>
+        </div>
+        <span id="eyes-title">Googly eyes</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="eyes-content" id="eyes-content"><div class="eye"><i></i></div><div class="eye"><i></i></div></div>
+    </section>
+
+    <section class="window calculator-window" id="calculator-window" data-window tabindex="-1" aria-labelledby="calculator-title" hidden>
+      <header class="window-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close Calculator"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize Calculator"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize Calculator"></button>
+        </div>
+        <span id="calculator-title">Calculator</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="calculator-content">
+        <output id="calculator-display" aria-live="polite">0</output>
+        <div class="calculator-keys" id="calculator-keys">
+          <button data-calc="clear" class="calc-function">AC</button>
+          <button data-calc="sign" class="calc-function">+/−</button>
+          <button data-calc="percent" class="calc-function">%</button>
+          <button data-calc="divide" class="calc-operator">÷</button>
+          <button data-calc="7">7</button><button data-calc="8">8</button><button data-calc="9">9</button><button data-calc="multiply" class="calc-operator">×</button>
+          <button data-calc="4">4</button><button data-calc="5">5</button><button data-calc="6">6</button><button data-calc="subtract" class="calc-operator">−</button>
+          <button data-calc="1">1</button><button data-calc="2">2</button><button data-calc="3">3</button><button data-calc="add" class="calc-operator">+</button>
+          <button data-calc="0" class="calc-zero">0</button><button data-calc="decimal">.</button><button data-calc="equals" class="calc-equals">=</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="window notepad-window" id="notepad-window" data-window tabindex="-1" aria-labelledby="notepad-title" hidden>
+      <header class="window-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close Notepad"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize Notepad"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize Notepad"></button>
+        </div>
+        <span id="notepad-title">Notepad</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="notepad-content">
+        <input id="notepad-heading" value="Untitled note" aria-label="Note title">
+        <textarea id="notepad-body" aria-label="Note contents" placeholder="Start writing…"></textarea>
+        <footer><span id="notepad-status">Saved locally</span><span id="notepad-count">0 words</span></footer>
+      </div>
+    </section>
+
+    <section class="window terminal-window" id="terminal-window" data-window tabindex="-1" aria-labelledby="terminal-title" hidden>
+      <header class="window-titlebar terminal-titlebar" data-drag-handle>
+        <div class="window-controls">
+          <button class="window-control close" data-window-action="close" aria-label="Close Terminal"></button>
+          <button class="window-control minimize" data-window-action="minimize" aria-label="Minimize Terminal"></button>
+          <button class="window-control expand" data-window-action="maximize" aria-label="Maximize Terminal"></button>
+        </div>
+        <span id="terminal-title">Walter Terminal — safe mode</span><span class="window-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="terminal-content" id="terminal-content">
+        <div id="terminal-output" aria-live="polite">Walter terminal 1.0 — simulated environment<br>Type <strong>help</strong> to see available commands.</div>
+        <form id="terminal-form" autocomplete="off">
+          <label for="terminal-input"><span>visitor@walter</span>:~$</label>
+          <input id="terminal-input" aria-label="Terminal command" spellcheck="false">
+        </form>
+      </div>
+    </section>
+
+    <nav class="dock" aria-label="Application dock">
+      <button class="dock-button" data-open-window="browser-window" aria-label="Open Browser">◎</button>
+      <button class="dock-button" data-open-window="files-window" aria-label="Open Files">▰</button>
+      <button class="dock-button" data-open-window="ide-window" aria-label="Open IDE">&lt;/&gt;</button>
+      <button class="dock-button" data-open-window="clock-window" aria-label="Open Clock">◷</button>
+      <button class="dock-button" data-open-window="eyes-window" aria-label="Open Googly Eyes">◉</button>
+      <button class="dock-button" data-open-window="calculator-window" aria-label="Open Calculator">±</button>
+      <button class="dock-button" data-open-window="notepad-window" aria-label="Open Notepad">✎</button>
+      <button class="dock-button" data-open-window="terminal-window" aria-label="Open Terminal">›_</button>
+    </nav>
+  </main>
+  <script src="{{ rp }}/assets/walter.js?v=20260923-5"></script>
+</body>
+</html>

@@ -37,10 +37,10 @@
 
 {% if rows %}
   {% for r in rows %}
-  <section class="card mm2-card" tabindex="0">
+  <section class="card mm2-card">
     <div class="mm2-summary">
       <div class="mm2-summary-main">
-        <a class="lab-name" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a>
+        <span class="mm2-title">{{ r.lab.name }}</span>
         {% if r.lab.course_id %}<span class="muted">Course {{ r.lab.course_id }}</span>{% endif %}
       </div>
       <div class="mm2-progress-wrap" aria-label="{{ r.progress.percent }}% complete">

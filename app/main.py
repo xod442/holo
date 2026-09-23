@@ -12,7 +12,7 @@ from . import backup, config
 from .db import SessionLocal, init_db
 from .deps import get_current_user
 from .models import User, STAFF_ROLES
-from .routes import account, admin, api, auth, labs, logs, notifications, sso, timewarp
+from .routes import account, admin, api, auth, labs, logs, notifications, sso, timewarp, walter
 
 # Paths a user with a pending password change may still reach. /sso/focus is
 # included so an incoming hand-off from FOCUS can always establish a fresh
@@ -84,6 +84,7 @@ def create_app() -> FastAPI:
     app.include_router(timewarp.router)
     app.include_router(labs.router)
     app.include_router(api.router)
+    app.include_router(walter.router)
 
     # --- Admin-only, self-hosted API docs (Swagger) --------------------------
     _root = config.ROOT_PATH.rstrip("/")
