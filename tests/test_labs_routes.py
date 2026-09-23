@@ -78,6 +78,20 @@ def test_mallmanac_renders_for_logged_in_user(client, db_session, member_user):
     assert "Mallmanac Lab" in resp.text
 
 
+def test_mallmanac_owner_filter(client, db_session, member_user):
+    other = make_user(db_session, email="mallmanac-owner@test.local")
+    svc.create_lab(db_session, name="Owned Mallmanac Lab", owner_id=member_user.id)
+    svc.create_lab(db_session, name="Other Mallmanac Lab", owner_id=other.id)
+    login(client, member_user)
+
+    resp = client.get("/mallmanac", params={"owner": str(member_user.id)}, follow_redirects=False)
+    assert resp.status_code == 200
+    assert "Owned Mallmanac Lab" in resp.text
+    assert "Other Mallmanac Lab" not in resp.text
+    assert f'value="{member_user.id}" selected' in resp.text
+    assert "1 of 2 labs" in resp.text
+
+
 def test_mallmanac_requires_login(client):
     resp = client.get("/mallmanac", follow_redirects=False)
     assert resp.status_code == 303

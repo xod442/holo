@@ -19,6 +19,22 @@
 
 {% if msg %}<div class="alert {{ 'success' if ok else 'error' }}">{{ msg }}</div>{% endif %}
 
+<form method="get" class="filter-bar">
+  <label class="filter-label" for="mallmanac-owner">HOL owner</label>
+  <select id="mallmanac-owner" name="owner" onchange="this.form.submit()">
+    <option value="all" {% if owner_sel in ('', 'all') %}selected{% endif %}>All owners</option>
+    {% for oid, email in owner_options %}
+    <option value="{{ oid }}" {% if owner_sel == oid|string %}selected{% endif %}>{{ email }}</option>
+    {% endfor %}
+    {% if has_unassigned %}
+    <option value="unassigned" {% if owner_sel == 'unassigned' %}selected{% endif %}>Unassigned</option>
+    {% endif %}
+  </select>
+  <noscript><button class="btn btn-sm" type="submit">Filter</button></noscript>
+  <span class="filter-count">{{ rows|length }} of {{ total_labs }} lab{{ '' if total_labs == 1 else 's' }}</span>
+  {% if owner_sel not in ('', 'all') %}<a class="filter-clear" href="{{ rp }}/mallmanac">clear</a>{% endif %}
+</form>
+
 {% if rows %}
   {% for r in rows %}
   <section class="card mm2-card">
@@ -69,8 +85,13 @@
   {% endfor %}
 {% else %}
   <div class="card empty">
-    <p class="muted">No labs yet.</p>
-    <a class="btn" href="{{ rp }}/labs/new">Create a lab</a>
+    {% if owner_sel not in ('', 'all') %}
+      <p class="muted">No labs match this owner.</p>
+      <a class="btn" href="{{ rp }}/mallmanac">Show all labs</a>
+    {% else %}
+      <p class="muted">No labs yet.</p>
+      <a class="btn" href="{{ rp }}/labs/new">Create a lab</a>
+    {% endif %}
   </div>
 {% endif %}
 

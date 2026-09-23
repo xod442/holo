@@ -100,7 +100,7 @@ def dashboard(request: Request, owner: str = "",
 
 
 @router.get("/mallmanac", response_class=HTMLResponse)
-def mallmanac(request: Request, ok: int = 1, msg: str = "",
+def mallmanac(request: Request, owner: str = "", ok: int = 1, msg: str = "",
              db: Session = Depends(get_db), user=Depends(get_current_user)):
     """Lifecycle map: every lab as a 4-dev / 4-prod column grid of task pills,
     with a 'you are here' pin on the furthest completed task. Admins can
@@ -108,7 +108,25 @@ def mallmanac(request: Request, ok: int = 1, msg: str = "",
     if user is None:
         return _login()
     axis = PHASE_AXIS
-    labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.created_at).all()
+    all_labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.created_at).all()
+
+    owner_options: dict[int, str] = {}
+    has_unassigned = False
+    for lab in all_labs:
+        if lab.owner_id is None:
+            has_unassigned = True
+        elif lab.owner is not None:
+            owner_options[lab.owner_id] = lab.owner.email
+    owner_options = sorted(owner_options.items(), key=lambda kv: kv[1])
+
+    def _keep(lab) -> bool:
+        if owner in ("", "all"):
+            return True
+        if owner == "unassigned":
+            return lab.owner_id is None
+        return str(lab.owner_id) == owner
+
+    labs = [lab for lab in all_labs if _keep(lab)]
     rows = []
     for lab in labs:
         # Furthest completed task = last done task in pipeline order.
@@ -137,7 +155,17 @@ def mallmanac(request: Request, ok: int = 1, msg: str = "",
     return templates.TemplateResponse(
         request,
         "mallmanac.html",
-        {"request": request, "user": user, "rows": rows, "msg": msg, "ok": bool(ok)},
+        {
+            "request": request,
+            "user": user,
+            "rows": rows,
+            "msg": msg,
+            "ok": bool(ok),
+            "owner_options": owner_options,
+            "owner_sel": owner,
+            "has_unassigned": has_unassigned,
+            "total_labs": len(all_labs),
+        },
     )
 
 
@@ -643,5 +671,4 @@ def unblock(lab_id: int, phase_id: int, db: Session = Depends(get_db),
         audit.log(db, user, "phase.unblock", target_type="phase", target_id=phase.id,
                   target_label=f"{lab.name} / {phase.name}")
     return _back(lab_id)
-
 
