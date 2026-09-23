@@ -37,48 +37,63 @@
 
 {% if rows %}
   {% for r in rows %}
-  <section class="card mm2-card">
-    <div class="mm2-cardhead">
-      <a class="lab-name" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a>
-      {% if r.lab.course_id %}<span class="muted">Course {{ r.lab.course_id }}</span>{% endif %}
-      <span class="status-badge status-{{ r.status|replace(' ', '-')|lower }}">
-        {{ r.status }} · {{ r.progress.percent }}%
-      </span>
-    </div>
-
-    <div class="mm2-stagehead">
-      <div class="mm2-stage">Development</div>
-      <div class="mm2-stage">Production</div>
-    </div>
-
-    <div class="mm2-scroll">
-      <div class="mm2-grid">
-        {% for c in r.cols %}
-        <div class="mm2-col">
-          <div class="mm2-phase s-{{ c.state }}">
-            <span class="mm2-code">{{ c.code }}</span>{{ c.name }}
-          </div>
-          {% for t in c.tasks %}
-          {% if user.role == 'admin' %}
-          <form method="post" action="{{ rp }}/admin/time-warp/{{ r.lab.id }}/{{ t.id }}"
-                class="mm2-task-form" data-lab="{{ r.lab.name }}" data-step="{{ c.name }} / {{ t.title }}">
-            <button type="submit"
-                    class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
-                    title="{{ t.title }}">
-              {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
-              <span class="mm2-tasktext">{{ t.title }}</span>
-            </button>
-          </form>
-          {% else %}
-          <div class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
-               title="{{ t.title }}">
-            {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
-            <span class="mm2-tasktext">{{ t.title }}</span>
-          </div>
-          {% endif %}
+  <section class="card mm2-card" tabindex="0">
+    <div class="mm2-summary">
+      <div class="mm2-summary-main">
+        <a class="lab-name" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a>
+        {% if r.lab.course_id %}<span class="muted">Course {{ r.lab.course_id }}</span>{% endif %}
+      </div>
+      <div class="mm2-progress-wrap" aria-label="{{ r.progress.percent }}% complete">
+        <div class="progress8 mm2-progress">
+          {% for c in r.cols %}
+          <div class="seg {{ c.state }}" title="{{ c.name }} — {{ c.state|replace('_',' ') }}"></div>
           {% endfor %}
         </div>
-        {% endfor %}
+        <span class="mm2-progress-label">{{ r.progress.percent }}%</span>
+      </div>
+    </div>
+
+    <div class="mm2-details">
+      <div class="mm2-cardhead">
+        <span class="status-badge status-{{ r.status|replace(' ', '-')|lower }}">
+          {{ r.status }} · {{ r.progress.percent }}%
+        </span>
+      </div>
+
+      <div class="mm2-stagehead">
+        <div class="mm2-stage">Development</div>
+        <div class="mm2-stage">Production</div>
+      </div>
+
+      <div class="mm2-scroll">
+        <div class="mm2-grid">
+          {% for c in r.cols %}
+          <div class="mm2-col">
+            <div class="mm2-phase s-{{ c.state }}">
+              <span class="mm2-code">{{ c.code }}</span>{{ c.name }}
+            </div>
+            {% for t in c.tasks %}
+            {% if user.role == 'admin' %}
+            <form method="post" action="{{ rp }}/admin/time-warp/{{ r.lab.id }}/{{ t.id }}"
+                  class="mm2-task-form" data-lab="{{ r.lab.name }}" data-step="{{ c.name }} / {{ t.title }}">
+              <button type="submit"
+                      class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
+                      title="{{ t.title }}">
+                {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
+                <span class="mm2-tasktext">{{ t.title }}</span>
+              </button>
+            </form>
+            {% else %}
+            <div class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
+                 title="{{ t.title }}">
+              {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
+              <span class="mm2-tasktext">{{ t.title }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </section>

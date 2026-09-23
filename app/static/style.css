@@ -408,8 +408,36 @@ textarea { font-family: inherit; resize: vertical; }
 
 /* ---- mallmanac (lifecycle map, calendar-style pill grid) ---- */
 .mm2-headline { font-size: 1.8rem; font-weight: 800; color: var(--hpe-green-dark); margin: -6px 0 4px; letter-spacing: .01em; }
-.mm2-card { padding: 18px; }
-.mm2-cardhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.mm2-card { padding: 14px 18px; transition: border-color .18s ease, box-shadow .18s ease; }
+.mm2-card:focus { outline: none; }
+.mm2-card:hover, .mm2-card:focus-within, .mm2-card:focus {
+  border-color: rgba(1, 169, 130, .5);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+}
+.mm2-summary { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(260px, 44%); align-items: center; gap: 18px; }
+.mm2-summary-main { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.mm2-summary-main .lab-name { font-size: 1.1rem; font-weight: 700; color: var(--text); text-decoration: none; }
+.mm2-summary-main .lab-name:hover { color: var(--hpe-green-dark); }
+.mm2-progress-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mm2-progress { flex: 1 1 auto; margin: 0; min-width: 160px; }
+.mm2-progress-label { flex: 0 0 auto; color: var(--muted); font-size: .82rem; font-weight: 800; }
+.mm2-details {
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  overflow: hidden;
+  transition: max-height .22s ease, opacity .18s ease, visibility 0s linear .22s, margin-top .22s ease;
+}
+.mm2-card:hover .mm2-details,
+.mm2-card:focus-within .mm2-details,
+.mm2-card:focus .mm2-details {
+  max-height: 720px;
+  opacity: 1;
+  visibility: visible;
+  margin-top: 14px;
+  transition-delay: 0s;
+}
+.mm2-cardhead { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-bottom: 12px; }
 .mm2-cardhead .lab-name { font-size: 1.1rem; font-weight: 700; color: var(--text); text-decoration: none; }
 .mm2-cardhead .lab-name:hover { color: var(--hpe-green-dark); }
 .mm2-scroll { overflow-x: auto; }
@@ -439,3 +467,7 @@ body.warp-mode .mm2-task-form button.mm2-task:hover { outline: 2px solid var(--h
 
 /* shared sub-headline (used by mallmanac) */
 .overview-sub { margin: -8px 0 16px; }
+
+@media (max-width: 720px) {
+  .mm2-summary { grid-template-columns: 1fr; gap: 10px; }
+}
