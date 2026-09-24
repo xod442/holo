@@ -69,6 +69,7 @@ def notifications_page(request: Request, ok: int = 1, msg: str = "",
 @router.post("/admin/mail")
 def save_mail(request: Request, host: str = Form(""), port: int = Form(25),
               mail_from: str = Form(""), default_to: str = Form(""),
+              manager_email: str = Form(""),
               app_base_url: str = Form(""), enabled: str = Form(""),
               db: Session = Depends(get_db), user=Depends(get_current_user)):
     blocked = _guard(user)
@@ -79,12 +80,16 @@ def save_mail(request: Request, host: str = Form(""), port: int = Form(25),
     cfg.port = port
     cfg.mail_from = mail_from.strip()
     cfg.default_to = default_to.strip()
+    cfg.manager_email = manager_email.strip().lower()
     cfg.app_base_url = app_base_url.strip()
     cfg.enabled = enabled == "1"
     db.add(cfg)
     db.commit()
     audit.log(db, user, "notifications.mail_config_save", target_type="mail_config",
-              details=f"host={cfg.host}, enabled={cfg.enabled}")
+              details=(
+                  f"host={cfg.host}, enabled={cfg.enabled}, "
+                  f"manager_email={cfg.manager_email}"
+              ))
     return _redirect_admin("Mail forwarder settings saved.")
 
 

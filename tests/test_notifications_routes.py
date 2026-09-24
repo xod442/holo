@@ -29,6 +29,16 @@ def test_staff_can_view_notifications_page(client, admin_user):
     assert client.get("/admin/notifications", follow_redirects=False).status_code == 200
 
 
+def test_admin_page_shows_manager_approval_email_setting(client, admin_user):
+    login(client, admin_user)
+    resp = client.get("/admin", follow_redirects=False)
+
+    assert resp.status_code == 200
+    assert "Manager approval notifications" in resp.text
+    assert 'name="manager_email"' in resp.text
+    assert 'placeholder="manager@hpe.com"' in resp.text
+
+
 def test_save_mail_config_and_audits(client, db_session, admin_user):
     login(client, admin_user)
     resp = client.post(
@@ -38,6 +48,7 @@ def test_save_mail_config_and_audits(client, db_session, admin_user):
             "port": "2525",
             "mail_from": "holo@example.com",
             "default_to": "team@example.com",
+            "manager_email": "Manager@HPE.com",
             "app_base_url": "https://holo.example.com",
             "enabled": "1",
         },
@@ -50,6 +61,7 @@ def test_save_mail_config_and_audits(client, db_session, admin_user):
     assert cfg.host == "smtp.example.com"
     assert cfg.port == 2525
     assert cfg.enabled is True
+    assert cfg.manager_email == "manager@hpe.com"
 
     entry = (
         db_session.query(AuditLog)

@@ -271,8 +271,10 @@ Admin console → **Notifications** (`/admin/notifications`):
 
 1. Configure the **mail forwarder** — an *unauthenticated* SMTP relay (host/IP, port,
    from, default-to). Toggle **Enabled** and use **Send test email** to verify.
-2. Create **notification lists** (teams) and add recipient emails.
-3. Add **triggers** per list: a phase + an event (`submitted` / `approved` /
+2. Set the **Manager HPE email**. Every approval submission automatically sends
+   a notice to this address.
+3. Create **notification lists** (teams) and add recipient emails.
+4. Add **triggers** per list: a phase + an event (`submitted` / `approved` /
    `completed`). When that phase hits that event, the list is emailed.
 
 Sending is best-effort (short timeout) — a mail failure never blocks a phase from

@@ -175,6 +175,7 @@ class MailConfig(Base):
     port: Mapped[int] = mapped_column(Integer, default=25)
     mail_from: Mapped[str] = mapped_column(String, default="")
     default_to: Mapped[str] = mapped_column(String, default="")  # fallback / test target
+    manager_email: Mapped[str] = mapped_column(String, default="")
     app_base_url: Mapped[str] = mapped_column(String, default="")  # for links in emails
 
 

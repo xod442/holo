@@ -63,6 +63,14 @@
         <input type="text" name="default_to" value="{{ cfg.default_to }}" placeholder="te-team@hpe.com">
       </label>
     </div>
+    <div class="card manager-mail-card">
+      <h3>Manager approval notifications</h3>
+      <p class="hint">When a lab phase is submitted for approval, HOLO sends a notice to this address automatically.</p>
+      <label>Manager HPE email
+        <input type="email" name="manager_email" value="{{ cfg.manager_email }}"
+               placeholder="manager@hpe.com">
+      </label>
+    </div>
     <label>App base URL <span class="muted">(for links inside emails, optional)</span>
       <input type="text" name="app_base_url" value="{{ cfg.app_base_url }}" placeholder="https://theedge.ext.hpe.com/holo">
     </label>

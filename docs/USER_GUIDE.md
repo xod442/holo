@@ -245,12 +245,15 @@ Open **Notifications** to configure phase email notifications.
 
 1. In **Mail forwarder**, enter the SMTP relay host, port, From address, and
    optional default recipient.
-2. Enter the **App base URL** if email links need a specific public URL.
-3. Enable the forwarder and select **Save forwarder**.
-4. Use **Send test email** to verify delivery.
-5. Create a notification list.
-6. Add recipient email addresses to the list.
-7. Add subscriptions by choosing a phase and event:
+2. Enter the Manager's HPE email under **Manager approval notifications**.
+   HOLO sends this address an automatic notice whenever a phase is submitted
+   for approval.
+3. Enter the **App base URL** if email links need a specific public URL.
+4. Enable the forwarder and select **Save forwarder**.
+5. Use **Send test email** to verify delivery.
+6. Create a notification list.
+7. Add recipient email addresses to the list.
+8. Add subscriptions by choosing a phase and event:
    `submitted`, `approved`, or `completed`.
 
 Notifications are best-effort. A mail delivery failure does not stop a phase

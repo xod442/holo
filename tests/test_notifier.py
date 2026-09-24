@@ -113,6 +113,43 @@ def test_notify_phase_event_noop_when_no_subscribers(db_session):
     assert FakeSMTP.sent == []
 
 
+def test_notify_submitted_sends_to_configured_manager_without_subscribers(db_session):
+    _configured_cfg(
+        db_session,
+        enabled=True,
+        manager_email="manager@hpe.com",
+        app_base_url="https://holo.test",
+    )
+
+    class DummyLab:
+        id, name = 42, "Networking 101"
+
+    class DummyPhase:
+        name, stage = "Design", "Development"
+
+    notifier.notify_phase_event(db_session, DummyLab(), DummyPhase(), "submitted")
+
+    assert len(FakeSMTP.sent) == 1
+    sent = FakeSMTP.sent[0]
+    assert sent["To"] == "manager@hpe.com"
+    assert "Networking 101" in sent["Subject"]
+    assert "Design" in sent.get_content()
+    assert "https://holo.test/labs/42" in sent.get_content()
+
+
+def test_manager_email_only_receives_submitted_events(db_session):
+    _configured_cfg(db_session, enabled=True, manager_email="manager@hpe.com")
+
+    class DummyLab:
+        id, name = 1, "Lab"
+
+    class DummyPhase:
+        name, stage = "Design", "Development"
+
+    notifier.notify_phase_event(db_session, DummyLab(), DummyPhase(), "approved")
+    assert FakeSMTP.sent == []
+
+
 def test_notify_phase_event_sends_to_subscribed_list(db_session):
     _configured_cfg(db_session, enabled=True, app_base_url="https://holo.test")
     lst = NotificationList(name="vLabs Team")
@@ -137,6 +174,26 @@ def test_notify_phase_event_sends_to_subscribed_list(db_session):
     assert "Networking 101" in sent["Subject"]
     body = sent.get_content()
     assert "https://holo.test/labs/42" in body
+
+
+def test_notify_submitted_deduplicates_manager_and_list_recipient(db_session):
+    _configured_cfg(db_session, enabled=True, manager_email="manager@hpe.com")
+    lst = NotificationList(name="Managers")
+    db_session.add(lst)
+    db_session.flush()
+    db_session.add(NotificationRecipient(list_id=lst.id, email="manager@hpe.com"))
+    db_session.add(PhaseSubscription(list_id=lst.id, phase_name="Design", event="submitted"))
+    db_session.commit()
+
+    class DummyLab:
+        id, name = 1, "Lab"
+
+    class DummyPhase:
+        name, stage = "Design", "Development"
+
+    notifier.notify_phase_event(db_session, DummyLab(), DummyPhase(), "submitted")
+    assert len(FakeSMTP.sent) == 1
+    assert FakeSMTP.sent[0]["To"] == "manager@hpe.com"
 
 
 def test_notify_phase_event_ignores_other_phase_or_event(db_session):

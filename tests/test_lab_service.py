@@ -4,6 +4,7 @@ import pytest
 from app import lab_service as svc
 from app.labs_template import PHASE_TEMPLATE
 from app.models import (
+    MailConfig,
     PHASE_APPROVED,
     PHASE_AWAITING,
     PHASE_BLOCKED,
@@ -12,7 +13,7 @@ from app.models import (
     PHASE_NOT_STARTED,
 )
 
-from conftest import make_user
+from conftest import FakeSMTP, make_user
 
 
 def _phase(lab, name):
@@ -82,6 +83,27 @@ def test_approval_phase_requires_submit_then_manager_approve(db_session):
 
     develop = _phase(lab, "Develop")
     assert develop.state == PHASE_IN_PROGRESS  # next phase auto-activated
+
+
+def test_submit_phase_emails_configured_manager(db_session, fake_smtp):
+    owner = make_user(db_session, email="approval-owner@test.local")
+    lab = svc.create_lab(db_session, name="Approval Email Lab", owner_id=owner.id)
+    concept = _phase(lab, "Concept")
+    svc.complete_phase(db_session, concept, lab)
+
+    cfg = db_session.get(MailConfig, 1)
+    cfg.host = "smtp.test.local"
+    cfg.mail_from = "holo@test.local"
+    cfg.manager_email = "manager@hpe.com"
+    cfg.app_base_url = "https://holo.test"
+    cfg.enabled = True
+    db_session.add(cfg)
+    db_session.commit()
+
+    assert svc.submit_phase(db_session, _phase(lab, "Design"), lab) is True
+    assert len(FakeSMTP.sent) == 1
+    assert FakeSMTP.sent[0]["To"] == "manager@hpe.com"
+    assert "Approval Email Lab" in FakeSMTP.sent[0]["Subject"]
 
 
 def test_can_start_requires_all_earlier_phases_done(db_session):

@@ -81,6 +81,12 @@ def _ensure_columns() -> None:
                 )
             )
 
+        mail_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(mail_config)"))}
+        if "manager_email" not in mail_cols:
+            conn.execute(
+                text("ALTER TABLE mail_config ADD COLUMN manager_email VARCHAR NOT NULL DEFAULT ''")
+            )
+
 
 def seed_default_admin() -> None:
     """Create the default admin on a fresh database (no users yet)."""

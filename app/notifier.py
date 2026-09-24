@@ -9,7 +9,7 @@ from email.message import EmailMessage
 
 from sqlalchemy.orm import Session
 
-from .models import MailConfig, PhaseSubscription
+from .models import MailConfig, NOTIFY_SUBMITTED, PhaseSubscription
 
 logger = logging.getLogger("holo.notifier")
 
@@ -84,7 +84,7 @@ def _body(cfg: MailConfig, lab, phase, event: str) -> str:
 
 
 def notify_phase_event(db: Session, lab, phase, event: str) -> None:
-    """Email every list subscribed to (phase name, event). Best-effort."""
+    """Email matching lists and the manager for approval requests. Best-effort."""
     cfg = get_config(db)
     if cfg is None or not cfg.enabled or not cfg.host:
         return
@@ -96,6 +96,8 @@ def notify_phase_event(db: Session, lab, phase, event: str) -> None:
         .all()
     )
     recipients: set[str] = set()
+    if event == NOTIFY_SUBMITTED and "@" in cfg.manager_email:
+        recipients.add(cfg.manager_email)
     for sub in subs:
         for r in sub.list.recipients:
             recipients.add(r.email)
