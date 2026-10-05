@@ -119,6 +119,11 @@ approvals are preserved.
 
 ## Views
 
+Admins can use **Admin → Download HOL titles** to search active titles by a
+case-insensitive literal keyword and download `hol-titles.txt`, alphabetically
+sorted with one title per line. Update records are included; archived records
+and abstract-only matches are excluded. Exports are recorded in the System Log.
+
 ### Production-only HOL updates
 
 Select **Update** beside a HOL title on the Dashboard, Mallmanac, or lab detail

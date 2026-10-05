@@ -1,10 +1,67 @@
 """HTTP-level tests for the admin console: staff-only guard, invites,
 password reset, and DB backup/restore."""
 import io
+from datetime import datetime
 
+from app import lab_service as svc
 from app.models import AuditLog, Invite
 
 from conftest import login
+
+
+def test_hol_title_export_matches_literal_titles_and_includes_updates(
+    client, db_session, admin_user,
+):
+    source = svc.create_lab(db_session, name="zAutomation HOL", owner_id=admin_user.id)
+    svc.create_update(db_session, source)
+    svc.create_lab(db_session, name="Automation Alpha", owner_id=admin_user.id)
+    svc.create_lab(db_session, name="Other", owner_id=admin_user.id, abstract="automation")
+    archived = svc.create_lab(db_session, name="Automation Archived", owner_id=admin_user.id)
+    archived.archived_at = datetime(2026, 10, 5)
+    db_session.commit()
+    login(client, admin_user)
+    assert 'id="hol-title-export"' in client.get("/admin").text
+    response = client.post("/admin/hol-titles/download", data={"keyword": "  AUTOMATION  "})
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert response.headers["content-disposition"] == 'attachment; filename="hol-titles.txt"'
+    assert response.headers["cache-control"] == "no-store"
+    assert response.text == "Automation Alpha\nzAutomation HOL\nzAutomation HOL - Update\n"
+    entry = db_session.query(AuditLog).filter_by(action="admin.hol_titles_export").one()
+    assert entry.user_id == admin_user.id
+    assert "count=3" in entry.details
+
+
+def test_hol_title_export_unicode_wildcards_and_single_line_output(client, db_session, admin_user):
+    svc.create_lab(db_session, name="Straße 100%_HOL\nTitle", owner_id=admin_user.id)
+    svc.create_lab(db_session, name="Other HOL", owner_id=admin_user.id)
+    login(client, admin_user)
+    for keyword in ("STRASSE", "%_"):
+        response = client.post("/admin/hol-titles/download", data={"keyword": keyword})
+        assert response.text == "Straße 100%_HOL Title\n"
+
+
+def test_hol_title_export_invalid_and_empty_matches(client, admin_user):
+    login(client, admin_user)
+    for keyword in ("", "   ", "x" * 201):
+        response = client.post("/admin/hol-titles/download", data={"keyword": keyword})
+        assert response.status_code == 422
+        assert "Enter a keyword" in response.text
+        assert "content-disposition" not in response.headers
+    response = client.post("/admin/hol-titles/download", data={"keyword": "<missing>"})
+    assert response.status_code == 200
+    assert "No active HOL titles match" in response.text
+    assert "&lt;missing&gt;" in response.text
+    assert "content-disposition" not in response.headers
+
+
+def test_hol_title_export_is_admin_only(client, member_user, manager_user):
+    url = "/admin/hol-titles/download"
+    assert client.post(url, data={"keyword": "HOL"}, follow_redirects=False).headers["location"] == "/login"
+    for user in (member_user, manager_user):
+        login(client, user)
+        assert client.post(url, data={"keyword": "HOL"}).status_code == 403
+    assert 'id="hol-title-export"' not in client.get("/admin").text
 
 
 def test_member_redirected_away_from_admin_routes(client, member_user):

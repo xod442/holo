@@ -44,6 +44,21 @@
   <p class="hint">Links are single-use and expire. Copy/paste them, or use ✉ Email to send via the forwarder.</p>
 </section>
 
+{% if user.role == 'admin' %}
+<section class="card" id="hol-title-export">
+  <h2>Download HOL titles</h2>
+  <p class="hint" id="hol-title-export-help">Search active HOL titles by keyword
+    (case-insensitive). Includes update records, excludes archived records,
+    and downloads an alphabetically sorted text file with one title per line.</p>
+  <form method="post" action="{{ rp }}/admin/hol-titles/download" class="inline-form">
+    <label for="hol-title-keyword">Title keyword</label>
+    <input id="hol-title-keyword" name="keyword" type="text" required maxlength="200"
+           aria-describedby="hol-title-export-help" placeholder="e.g. automation">
+    <button class="btn" type="submit">Download titles</button>
+  </form>
+</section>
+{% endif %}
+
 <section class="card" id="github-managers">
   <h2>GitHub managers</h2>
   <p class="hint" id="github-managers-help">Enter one email address per line, or separate addresses

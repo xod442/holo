@@ -249,6 +249,15 @@ Final **Completed** still requires Manager approval and all blocks resolved.
 
 Managers and Admins can open **Admin**.
 
+### Download HOL titles (Admins only)
+
+In **Download HOL titles**, enter a keyword and select **Download titles**.
+The search matches the literal keyword anywhere in a title, ignoring case.
+It includes active original HOLs and update records, but excludes archived
+records and does not search abstracts. The downloaded `hol-titles.txt` file
+contains only matching titles, sorted alphabetically, one per line.
+If nothing matches, the Admin page displays a message instead of a download.
+
 ### Invite users
 
 1. Enter the person's email address.

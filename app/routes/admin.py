@@ -7,15 +7,15 @@ import secrets
 import tempfile
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from .. import backup, config, notifier
 from .. import audit
 from ..db import get_db
 from ..deps import get_current_user
-from ..models import GitHubManager, User, Invite, VALID_ROLES, ROLE_MEMBER, STAFF_ROLES
+from ..models import GitHubManager, Lab, User, Invite, VALID_ROLES, ROLE_ADMIN, ROLE_MEMBER, STAFF_ROLES
 from ..security import generate_token, hash_password
 from ..web import templates
 
@@ -77,6 +77,40 @@ def admin_console(request: Request, ok: int = 1, msg: str = "",
     if user.role not in STAFF_ROLES:
         return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
     return _render_admin_home(request, db, user, msg=msg, ok=bool(ok))
+
+
+@router.post("/admin/hol-titles/download")
+def download_hol_titles(request: Request, keyword: str = Form(""),
+                        db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
+    if user.role != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admins can export HOL titles.")
+    keyword = keyword.strip()
+    if not keyword or len(keyword) > 200:
+        response = _render_admin_home(
+            request, db, user, ok=False,
+            msg="Enter a keyword between 1 and 200 characters to export HOL titles.",
+        )
+        response.status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+        return response
+    labs = db.query(Lab).filter(Lab.archived_at.is_(None)).all()
+    titles = sorted(
+        (lab.name for lab in labs if keyword.casefold() in lab.name.casefold()),
+        key=lambda title: (title.casefold(), title),
+    )
+    if not titles:
+        return _render_admin_home(
+            request, db, user, ok=False, msg=f'No active HOL titles match "{keyword}".',
+        )
+    content = "".join(" ".join(title.splitlines()) + "\n" for title in titles)
+    audit.log(db, user, "admin.hol_titles_export", target_type="lab",
+              details=f"keyword={keyword}; count={len(titles)}")
+    return Response(
+        content, media_type="text/plain",
+        headers={"Content-Disposition": 'attachment; filename="hol-titles.txt"',
+                 "Cache-Control": "no-store"},
+    )
 
 
 def _valid_manager_email(email: str) -> bool:
