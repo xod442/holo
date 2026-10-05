@@ -3,7 +3,7 @@ nearly complete before it was tracked in HOLO to any sub-process pill on the
 Mallmanac, auto-approving/completing everything before that point."""
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Form, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -28,7 +28,8 @@ def _guard(user):
 
 @router.post("/admin/time-warp/{lab_id}/{task_id}")
 def time_warp_to_task(lab_id: int, task_id: int, db: Session = Depends(get_db),
-                      user=Depends(get_current_user)):
+                      user=Depends(get_current_user), owner: str = Form(""),
+                      phase_state: str = Form("all")):
     blocked = _guard(user)
     if blocked:
         return blocked
@@ -44,6 +45,6 @@ def time_warp_to_task(lab_id: int, task_id: int, db: Session = Depends(get_db),
                       target_label=lab.name, details=message)
 
     return RedirectResponse(
-        f"/mallmanac?ok={1 if ok else 0}&msg={quote(message)}",
+        f"/mallmanac?ok={1 if ok else 0}&msg={quote(message)}&owner={quote(owner, safe='')}&phase_state={quote(phase_state, safe='')}",
         status_code=status.HTTP_303_SEE_OTHER,
     )

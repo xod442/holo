@@ -92,6 +92,34 @@ lab owner the record owner. The **Concept** phase starts active.
 
 Select a lab from the Dashboard or Mallmanac to open its workspace.
 
+### Create a production-only update
+
+Select **Update** next to a HOL title. The new record retains the source owner,
+course ID, and abstract, but uses only prod-1 through prod-4 with fresh update
+tasks. It links back to the source HOL; the source lists its updates at the bottom.
+Updates cannot themselves be updated. Use the original HOL's **Update** button
+for each additional update; all update links stay together on the original HOL.
+The revision pill starts as **Not set**. The owner or staff can select
+**Edit revision**, enter a label such as `2` or `v1.1` (up to 80 characters),
+and select **Save revision**. Clear the field to unset it. The saved revision
+also appears in the Dashboard, Mallmanac, and original HOL's updates list.
+
+Work ahead through any of the production tasks. Check **Submit for Approval** in
+prod-1 and save (or click its Mallmanac pill) to request Manager approval.
+The Manager receives the usual submission email when the mail forwarder is
+enabled and the Manager email is configured, and can approve through the queue
+or update detail page. Update phases other than prod-1 complete automatically
+when all of their tasks are done.
+
+Under **prod-2 / New Content**, save named HTTPS SharePoint links to the new
+material; these links are saved separately from task edits. **Completed** in
+prod-4 cannot be checked until every other task is done, all blocks are resolved,
+and a Manager has approved prod-1. Admin Time Warp can check off historical update
+tasks through a selected step, but preserves Manager approval and phase blocks.
+Warping to **Completed** is rejected until approval and block requirements are met.
+Time Warp sends no email; prod-1 enters the Manager queue when its submission task
+is checked.
+
 ### Update phase information
 
 Each phase contains task checkboxes and fields for:
@@ -181,6 +209,13 @@ continue the phase workflow.
 
 The Mallmanac shows every active lab as an eight-column lifecycle map:
 Development phases appear first, followed by Production phases.
+Production-only updates show just their four Production phases.
+
+Combine **HOL owner** and **Phase status** filters, just like the Dashboard.
+Choose **All statuses**, **All except completed**, Approved, Completed, Awaiting,
+In progress, Not started, or Blocked. Status matches the current phase (the final
+phase for finished labs); **All except completed** hides fully finished labs.
+**Clear** resets both filters, and task actions preserve your selections.
 
 - A check mark indicates a completed task.
 - Any signed-in user can click a task pill to complete or reopen just that task,
@@ -200,11 +235,15 @@ in HOLO. It is not a shortcut for skipping current review.
 3. Select the task pill representing the lab's actual historical position.
 4. Confirm the action.
 
-HOLO marks earlier phases complete, auto-approves earlier approval phases, and
+For original HOLs, HOLO marks earlier phases complete, auto-approves earlier approval phases, and
 checks tasks up to the selected task. The selected phase remains open so it can
 still follow its normal approval or completion workflow. Time Warp is
 forward-only, cannot be undone from the Mallmanac, and does not send
 notification emails.
+For updates, Time Warp checks tasks through the chosen step and derives phase
+progress from those checklists, without clearing blocks or granting approval.
+The prod-1 submission task puts the phase in the Manager queue without email.
+Final **Completed** still requires Manager approval and all blocks resolved.
 
 ## 9. Staff administration
 

@@ -27,10 +27,12 @@ def test_every_role_can_complete_later_task_without_changing_gates(
     assert f"Complete {task.phase.name} / {task.title}" in mall.text
     response = client.post(
         f"/labs/{lab.id}/tasks/{task.id}/complete",
-        data={"done": "1", "owner": str(member_user.id)}, follow_redirects=False,
+        data={"done": "1", "owner": str(member_user.id), "phase_state": "blocked"},
+        follow_redirects=False,
     )
     assert response.status_code == 303
     assert f"owner={member_user.id}" in response.headers["location"]
+    assert "phase_state=blocked" in response.headers["location"]
     db_session.refresh(task)
     assert task.done and task.done_by_id == actor.id and task.done_at is not None
     assert task.note == "Preserve this note"

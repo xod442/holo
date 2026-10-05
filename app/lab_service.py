@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from sqlalchemy.orm import Session
 
 from . import notifier
-from .labs_template import PHASE_TEMPLATE
+from .labs_template import PHASE_TEMPLATE, UPDATE_PHASE_TEMPLATE, STAGE_PRODUCTION
 from .models import (
     Approval,
     Lab,
@@ -67,6 +67,79 @@ def create_lab(db: Session, *, name: str, owner_id: int | None,
     return lab
 
 
+def create_update(db: Session, source: Lab) -> Lab:
+    """Create an independent production workflow linked back to its source HOL."""
+    if source.parent_lab_id is not None:
+        raise ValueError("An update cannot be updated. Create a new update from the original HOL.")
+    lab = Lab(name=f"{source.name} - Update", owner_id=source.owner_id,
+              parent_lab_id=source.id, course_id=source.course_id, abstract=source.abstract)
+    db.add(lab)
+    db.flush()
+    for i, tpl in enumerate(UPDATE_PHASE_TEMPLATE, start=4):
+        phase = Phase(
+            lab_id=lab.id, position=i, stage=STAGE_PRODUCTION, name=tpl["name"],
+            requires_approval=tpl["requires_approval"], estimated_hours=None,
+            state=PHASE_IN_PROGRESS,
+        )
+        db.add(phase)
+        db.flush()
+        for position, title in enumerate(tpl["tasks"]):
+            db.add(Task(phase_id=phase.id, position=position, title=title))
+    db.commit()
+    db.refresh(lab)
+    return lab
+
+
+def update_release_approved(lab: Lab) -> bool:
+    return any(p.position == 4 and p.state == PHASE_APPROVED and p.approval is not None
+               for p in lab.phases)
+
+
+def _validate_update_tasks(lab: Lab, updates: dict[int, bool]) -> None:
+    if lab.parent_lab_id is None:
+        return
+    for phase in lab.phases:
+        for task in phase.tasks:
+            if not updates.get(task.id, task.done):
+                continue
+            if phase.position == 4 and task.position == 3 and not task.done:
+                if phase.state == PHASE_BLOCKED:
+                    raise ValueError("Unblock prod-1 before submitting for Manager approval.")
+            if phase.position == 7 and task.position == 2:
+                if not update_release_approved(lab):
+                    raise ValueError("A Manager must approve prod-1 before completing/releasing this update.")
+                if any(not updates.get(other.id, other.done)
+                       for p in lab.phases for other in p.tasks if other.id != task.id):
+                    raise ValueError("Complete all other update tasks before marking Completed.")
+                if any(p.state == PHASE_BLOCKED for p in lab.phases):
+                    raise ValueError("Resolve all blocked phases before releasing this update.")
+
+
+def _sync_update_phases(db: Session, lab: Lab, *, notify: bool = True) -> None:
+    if lab.parent_lab_id is None:
+        return
+    notify_submission = None
+    for phase in lab.phases:
+        if phase.state == PHASE_BLOCKED:
+            continue
+        if phase.position == 4:
+            if phase.state == PHASE_APPROVED:
+                continue
+            submitted = any(t.position == 3 and t.done for t in phase.tasks)
+            if submitted and phase.state != PHASE_AWAITING:
+                phase.state = PHASE_AWAITING
+                notify_submission = phase
+            elif not submitted:
+                phase.state = PHASE_IN_PROGRESS
+        else:
+            phase.state = (PHASE_COMPLETED if all(t.done for t in phase.tasks)
+                           else PHASE_IN_PROGRESS)
+        db.add(phase)
+    db.commit()
+    if notify and notify_submission is not None:
+        notifier.notify_phase_event(db, lab, notify_submission, NOTIFY_SUBMITTED)
+
+
 # --- Read helpers -----------------------------------------------------------
 
 def progress(lab: Lab) -> dict:
@@ -90,7 +163,9 @@ def current_phase(lab: Lab) -> Phase | None:
 def lab_status(lab: Lab) -> str:
     if any(p.state == PHASE_BLOCKED for p in lab.phases):
         return "Blocked"
-    if lab.phases and all(p.state in PHASE_DONE_STATES for p in lab.phases):
+    if (lab.phases and all(p.state in PHASE_DONE_STATES for p in lab.phases)
+            and (lab.parent_lab_id is None or
+                 (update_release_approved(lab) and all(t.done for p in lab.phases for t in p.tasks)))):
         return "Complete"
     return "In Progress"
 
@@ -131,6 +206,8 @@ def submit_phase(db: Session, phase: Phase, lab: Lab) -> bool:
     """Send an approval-phase for admin sign-off."""
     if phase.state != PHASE_IN_PROGRESS or not phase.requires_approval:
         return False
+    if lab.parent_lab_id is not None:
+        return False  # Submit using the update task so the actor is recorded.
     phase.state = PHASE_AWAITING
     db.add(phase)
     db.commit()
@@ -142,6 +219,8 @@ def complete_phase(db: Session, phase: Phase, lab: Lab) -> bool:
     """Mark a non-approval phase done and activate the next phase."""
     if phase.state != PHASE_IN_PROGRESS or phase.requires_approval:
         return False
+    if lab.parent_lab_id is not None:
+        return False  # Update phases are completed by their task checklists.
     phase.state = PHASE_COMPLETED
     db.add(phase)
     _activate_next(db, phase, lab)
@@ -157,7 +236,7 @@ def approve_phase(db: Session, phase: Phase, lab: Lab, approver_id: int,
         return False
     phase.state = PHASE_APPROVED
     db.add(phase)
-    db.add(Approval(phase_id=phase.id, approver_id=approver_id, note=note.strip()))
+    phase.approval = Approval(phase_id=phase.id, approver_id=approver_id, note=note.strip())
     _activate_next(db, phase, lab)
     db.commit()
     notifier.notify_phase_event(db, lab, phase, NOTIFY_APPROVED)
@@ -175,6 +254,8 @@ def set_blocked(db: Session, phase: Phase, blocked: bool) -> bool:
         phase.state = PHASE_IN_PROGRESS
     db.add(phase)
     db.commit()
+    if not blocked and phase.lab.parent_lab_id is not None:
+        _sync_update_phases(db, phase.lab)
     return True
 
 
@@ -209,6 +290,9 @@ def time_warp_to_task(db: Session, lab: Lab, target_task_id: int,
     isn't already fully done. Silent — unlike real transitions, this never
     sends notification emails, since it's a historical correction, not a
     live event.
+
+    Updates instead follow checklist-driven phase states and retain all blocks
+    and Manager approvals. Release prerequisites are validated before any edits.
     """
     flat = _flat_tasks(lab)
     target_index = next((i for i, t in enumerate(flat) if t.id == target_task_id), None)
@@ -226,6 +310,19 @@ def time_warp_to_task(db: Session, lab: Lab, target_task_id: int,
     target_phase = target_task.phase
     if target_phase.state in PHASE_DONE_STATES:
         return False, "That phase is already complete."
+
+    if lab.parent_lab_id is not None:
+        updates = {task.id: True for task in flat[:target_index + 1]}
+        try:
+            _validate_update_tasks(lab, updates)
+        except ValueError as exc:
+            return False, str(exc)
+        for task in flat[:target_index + 1]:
+            _update_task_completion(task, True, actor_id)
+            db.add(task)
+        _sync_update_phases(db, lab, notify=False)
+        return True, (f"{lab.name} warped to {target_phase.name} / {target_task.title}. "
+                      "Manager approval and phase blocks are unchanged.")
 
     now = datetime.utcnow()
     phases = sorted(lab.phases, key=lambda p: p.position)
@@ -313,9 +410,11 @@ def _update_task_completion(task: Task, done: bool, user_id: int) -> None:
 
 def set_task_done(db: Session, task: Task, *, done: bool, user_id: int) -> None:
     """Save one task independently of phase locks, without changing phase state."""
+    _validate_update_tasks(task.phase.lab, {task.id: done})
     _update_task_completion(task, done, user_id)
     db.add(task)
     db.commit()
+    _sync_update_phases(db, task.phase.lab)
 
 
 def save_phase(db: Session, phase: Phase, *, actual_hours: float | None,
@@ -323,6 +422,8 @@ def save_phase(db: Session, phase: Phase, *, actual_hours: float | None,
                user_id: int) -> bool:
     """Save the whole pill in one shot: target date, hours, phase notes, and
     every step's checkbox + note. `task_updates` maps task id -> {note, done}."""
+    _validate_update_tasks(phase.lab, {task.id: bool(task_updates[task.id].get("done"))
+                                    for task in phase.tasks if task.id in task_updates})
     if actual_hours is not None and actual_hours >= 0:
         phase.actual_hours = float(actual_hours)
     phase.notes = (notes or "").strip()
@@ -338,6 +439,7 @@ def save_phase(db: Session, phase: Phase, *, actual_hours: float | None,
 
     db.add(phase)
     db.commit()
+    _sync_update_phases(db, phase.lab)
     return True
 
 

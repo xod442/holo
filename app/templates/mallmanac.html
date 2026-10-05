@@ -17,7 +17,8 @@
   in any order. Phase blocks and manager approvals remain in place; all phases must
   be completed or approved before the HOL is complete. Click a lab name to open it.
   {% if user.role == 'admin' %}Turn on <strong>Time Warp mode</strong> above, then click any pill to
-  fast-forward that lab to that step (earlier phases are auto-approved/completed; forward-only).{% endif %}</p>
+  fast-forward that lab to that step (forward-only). Original HOLs auto-approve earlier phases;
+  updates keep Manager approval and phase blocks in place.{% endif %}</p>
 
 {% if msg %}<div class="alert {{ 'success' if ok else 'error' }}">{{ msg }}</div>{% endif %}
 
@@ -32,10 +33,21 @@
     <option value="unassigned" {% if owner_sel == 'unassigned' %}selected{% endif %}>Unassigned</option>
     {% endif %}
   </select>
+  <label class="filter-label" for="phase-state">Phase status</label>
+  <select id="phase-state" name="phase_state" onchange="this.form.submit()"
+          aria-describedby="phase-state-help">
+    <option value="all" {% if phase_state_sel == 'all' %}selected{% endif %}>All statuses</option>
+    <option value="unfinished" {% if phase_state_sel == 'unfinished' %}selected{% endif %}>All except completed</option>
+    {% for value, label in phase_state_options %}
+    <option value="{{ value }}" {% if phase_state_sel == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
   <noscript><button class="btn btn-sm" type="submit">Filter</button></noscript>
   <span class="filter-count">{{ rows|length }} of {{ total_labs }} lab{{ '' if total_labs == 1 else 's' }}</span>
-  {% if owner_sel not in ('', 'all') %}<a class="filter-clear" href="{{ rp }}/mallmanac">clear</a>{% endif %}
+  {% if filters_active %}<a class="filter-clear" href="{{ rp }}/mallmanac">clear</a>{% endif %}
 </form>
+<p class="hint" id="phase-state-help">Status matches the current phase, or the final phase for finished labs.
+  All except completed hides fully finished labs.</p>
 
 {% if rows %}
   {% for r in rows %}
@@ -43,10 +55,18 @@
     <div class="mm2-summary">
       <div class="mm2-summary-main">
         <a class="mm2-title" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a>
+        {% if r.lab.parent_lab_id is not none %}
+        <span class="spill rel">Revision: {{ r.lab.revision or 'Not set' }}</span>
+        {% endif %}
+        {% if r.lab.parent_lab_id is none %}
+        <form method="post" action="{{ rp }}/labs/{{ r.lab.id }}/update">
+          <button class="btn btn-sm ghost" type="submit">Update</button>
+        </form>
+        {% endif %}
         {% if r.lab.course_id %}<span class="muted">Course {{ r.lab.course_id }}</span>{% endif %}
       </div>
       <div class="mm2-progress-wrap" aria-label="{{ r.progress.percent }}% complete">
-        <div class="progress8 mm2-progress">
+        <div class="progress8 mm2-progress{% if r.lab.parent_lab_id %} production-only-progress{% endif %}">
           {% for c in r.cols %}
           <div class="seg {{ c.state }}" title="{{ c.name }} — {{ c.state|replace('_',' ') }}"></div>
           {% endfor %}
@@ -63,11 +83,11 @@
       </div>
 
       <div class="mm2-scroll">
-        <div class="mm2-stagehead">
-          <div class="mm2-stage">Development</div>
+        <div class="mm2-stagehead{% if r.lab.parent_lab_id %} production-only-stage{% endif %}">
+          {% if not r.lab.parent_lab_id %}<div class="mm2-stage">Development</div>{% endif %}
           <div class="mm2-stage">Production</div>
         </div>
-        <div class="mm2-grid">
+        <div class="mm2-grid{% if r.lab.parent_lab_id %} production-only-grid{% endif %}">
           {% for c in r.cols %}
           <div class="mm2-col">
             <div class="mm2-phase s-{{ c.state }}">
@@ -76,9 +96,10 @@
             {% for t in c.tasks %}
             <form method="post" action="{{ rp }}/labs/{{ r.lab.id }}/tasks/{{ t.id }}/complete"
                   class="mm2-task-form" data-lab="{{ r.lab.name }}" data-step="{{ c.name }} / {{ t.title }}"
-                  {% if user.role == 'admin' %}data-warp-action="{{ rp }}/admin/time-warp/{{ r.lab.id }}/{{ t.id }}"{% endif %}>
+                  {% if user.role == 'admin' %}data-warp-action="{{ rp }}/admin/time-warp/{{ r.lab.id }}/{{ t.id }}" data-update="{{ '1' if r.lab.parent_lab_id else '0' }}"{% endif %}>
               <input type="hidden" name="done" value="{{ '0' if t.done else '1' }}">
               <input type="hidden" name="owner" value="{{ owner_sel }}">
+              <input type="hidden" name="phase_state" value="{{ phase_state_sel }}">
               <button type="submit"
                       class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
                       aria-label="{{ 'Reopen' if t.done else 'Complete' }} {{ c.name }} / {{ t.title }}"
@@ -98,8 +119,8 @@
   {% endfor %}
 {% else %}
   <div class="card empty">
-    {% if owner_sel not in ('', 'all') %}
-      <p class="muted">No labs match this owner.</p>
+    {% if filters_active %}
+      <p class="muted">No labs match these filters.</p>
       <a class="btn" href="{{ rp }}/mallmanac">Show all labs</a>
     {% else %}
       <p class="muted">No labs yet.</p>
@@ -126,8 +147,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       var msg = 'Time Warp "' + form.dataset.lab + '" to "' + form.dataset.step + '"?\n\n' +
-        'Every earlier phase will be marked done (approvals auto-approved) and every ' +
-        'earlier step in this phase will be checked off. This can\'t be undone from here.';
+        (form.dataset.update === '1'
+          ? 'Every task through this step will be checked off. Manager approval and phase blocks stay in place; Completed still requires approval and no blocks. No email is sent.'
+          : 'Every earlier phase will be marked done (approvals auto-approved) and every earlier step in this phase will be checked off.') +
+        ' This can\'t be undone from here.';
       if (!confirm(msg)) {
         e.preventDefault();
       } else {

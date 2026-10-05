@@ -108,6 +108,26 @@ PHASE_TEMPLATE = [
 
 TOTAL_ESTIMATED_HOURS = sum(p["estimated_hours"] or 0 for p in PHASE_TEMPLATE)
 
+UPDATE_PHASE_TEMPLATE = [
+    {
+        "name": "Update Preparation", "requires_approval": True,
+        "tasks": ["GitHub Clone", "Identify Hardware", "Update Lab Guide", "Submit for Approval"],
+    },
+    {
+        "name": "Content & Testing", "requires_approval": False,
+        "tasks": ["New Content", "Alpha Testing", "Beta Testing", "Feedback"],
+    },
+    {
+        "name": "Update Production", "requires_approval": False,
+        "tasks": ["Digital Workshop Catalog Update", "vLabs Scheduler", "New Build Scripts",
+                  "Automation", "MTP Scripts"],
+    },
+    {
+        "name": "Update Release", "requires_approval": False,
+        "tasks": ["Train the Trainer", "Go/No-Go", "Completed"],
+    },
+]
+
 
 def _build_phase_axis() -> list[dict]:
     """Left-axis labels: dev-1..dev-4, prod-1..prod-4, in pipeline order, each

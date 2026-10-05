@@ -82,7 +82,7 @@ def summary(db: Session = Depends(get_db)):
         owner = lab.owner.email if lab.owner else "Unassigned"
         owner_counts[owner] = owner_counts.get(owner, 0) + 1
 
-    total_phases = total * 8
+    total_phases = sum(len(lab.phases) for lab in labs)
     return {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "total_labs": total,
@@ -128,6 +128,8 @@ def labs_list(db: Session = Depends(get_db)):
             "name": lab.name,
             "course_id": lab.course_id,
             "abstract": lab.abstract,
+            "parent_lab_id": lab.parent_lab_id,
+            "revision": lab.revision,
             "owner_email": lab.owner.email if lab.owner else None,
             "status": svc.lab_status(lab),
             "percent": prog["percent"],

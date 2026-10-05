@@ -69,6 +69,8 @@ class Lab(Base):
     abstract: Mapped[str] = mapped_column(Text, default="")
     target_release: Mapped[str] = mapped_column(String, default="")
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    parent_lab_id: Mapped[int | None] = mapped_column(ForeignKey("labs.id"), nullable=True, index=True)
+    revision: Mapped[str] = mapped_column(String, default="")
     github_request_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     # Archived labs are hidden from the dashboard/mallmanac (None = active).
@@ -77,6 +79,13 @@ class Lab(Base):
 
     owner: Mapped["User | None"] = relationship("User", foreign_keys=[owner_id])
     archived_by: Mapped["User | None"] = relationship("User", foreign_keys=[archived_by_id])
+    parent_lab: Mapped["Lab | None"] = relationship(
+        "Lab", remote_side="Lab.id", back_populates="updates", foreign_keys=[parent_lab_id],
+    )
+    updates: Mapped[list["Lab"]] = relationship(
+        "Lab", back_populates="parent_lab", foreign_keys="Lab.parent_lab_id",
+        order_by="Lab.created_at",
+    )
     phases: Mapped[list["Phase"]] = relationship(
         "Phase",
         back_populates="lab",
@@ -157,6 +166,7 @@ class LabLink(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     lab_id: Mapped[int] = mapped_column(ForeignKey("labs.id"), index=True)
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id"), nullable=True, index=True)
     label: Mapped[str] = mapped_column(String)
     url: Mapped[str] = mapped_column(Text)
     added_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)

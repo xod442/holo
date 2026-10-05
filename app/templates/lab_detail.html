@@ -11,7 +11,33 @@
 <div class="page-head">
   <div>
     <a class="back" href="{{ rp }}/">&larr; Portfolio</a>
-    <h1>{{ lab.name }}</h1>
+    <div class="hol-title-row">
+      <h1>{{ lab.name }}</h1>
+      {% if lab.parent_lab_id is not none %}
+      <span class="spill rel">Revision: {{ lab.revision or 'Not set' }}</span>
+      {% endif %}
+      {% if lab.parent_lab_id is none %}
+      <form method="post" action="{{ rp }}/labs/{{ lab.id }}/update">
+        <button class="btn btn-sm ghost" type="submit">Update</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if lab.parent_lab %}
+    {% if can_change_owner %}
+    <details>
+      <summary>Edit revision</summary>
+      <form method="post" action="{{ rp }}/labs/{{ lab.id }}/revision" class="owner-form">
+        <label for="revision">Revision</label>
+        <input id="revision" name="revision" value="{{ lab.revision }}" maxlength="80"
+               placeholder="e.g. 2 or v1.1">
+        <button class="btn btn-sm ghost" type="submit">Save revision</button>
+      </form>
+    </details>
+    {% endif %}
+    <p class="hint">Production-only update of
+      <a class="doc-link" href="{{ rp }}/labs/{{ lab.parent_lab_id }}">{{ lab.parent_lab.name }}</a>.
+      Work in any order; prod-1 Manager approval is required for release.</p>
+    {% endif %}
     <div class="lab-meta">
       {% if lab.course_id %}Course {{ lab.course_id }} · {% endif %}
       {% if lab.target_release %}target {{ lab.target_release }}{% else %}no target set{% endif %}
@@ -76,7 +102,7 @@
 </section>
 
 <section class="card summary">
-  <div class="progress8 big">
+  <div class="progress8 big{% if lab.parent_lab_id %} production-only-progress{% endif %}">
     {% for row in phase_rows %}
     <div class="seg {{ row.phase.state }}" title="{{ row.phase.name }}"></div>
     {% endfor %}
@@ -125,7 +151,7 @@
   <div class="phase-head">
     <div>
       <span class="phase-stage">{% if p.requires_approval %}Requires approval{% else %}Completion step{% endif %}</span>
-      <h3 class="phase-name">{{ p.position + 1 }}. {{ p.name }}</h3>
+      <h3 class="phase-name">{% if lab.parent_lab_id %}prod-{{ p.position - 3 }}{% else %}{{ p.position + 1 }}.{% endif %} {{ p.name }}</h3>
     </div>
     <div class="phase-head-right">
       {% if p.target_date %}<span class="target-chip">🎯 {{ p.target_date }}</span>{% endif %}
@@ -147,6 +173,11 @@
       </li>
       {% endfor %}
     </ul>
+
+    {% if content_task and p.position == 5 %}
+    <p class="hint">Store SharePoint documentation with
+      <a class="doc-link" href="#new-content">New Content links</a> below.</p>
+    {% endif %}
 
     {% if p.position == 2 and p.stage == 'Development' %}
     <p class="hint">
@@ -191,7 +222,9 @@
         <span class="muted">🔒 Phase progression locked until previous phase is done; tasks can be saved in any order.</span>
         {% endif %}
       {% elif p.state == 'in_progress' %}
-        {% if p.requires_approval %}
+        {% if lab.parent_lab_id %}
+        <span class="muted">{% if p.requires_approval %}Complete Submit for Approval to request Manager approval.{% else %}Complete this phase's tasks to finish it.{% endif %}</span>
+        {% elif p.requires_approval %}
         <form method="post" action="{{ rp }}/labs/{{ lab.id }}/phases/{{ p.id }}/submit">
           <button class="btn btn-sm" type="submit">Submit for approval</button>
         </form>
@@ -232,6 +265,42 @@
   </div>
 </section>
 {% endfor %}
+
+{% if content_task %}
+<section class="card resources" id="new-content">
+  <h2>prod-2 / New Content</h2>
+  <p class="hint">Save SharePoint links to the new content. Links are saved separately
+    from task edits and do not automatically complete the task.</p>
+  <ul class="link-list">
+    {% for link in content_links %}
+    <li>
+      <a class="doc-link" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.label }}</a>
+      <form method="post" action="{{ rp }}/labs/{{ lab.id }}/links/{{ link.id }}/delete" class="link-del">
+        <button class="btn-link dark" type="submit">Remove</button>
+      </form>
+    </li>
+    {% else %}<li class="muted">No new content linked yet.</li>{% endfor %}
+  </ul>
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/tasks/{{ content_task.id }}/content" class="link-add">
+    <input type="text" name="label" aria-label="New content label" placeholder="Content label">
+    <input type="url" name="url" aria-label="New content SharePoint URL" placeholder="https://...sharepoint.com/..." required>
+    <button class="btn btn-sm" type="submit">Save content link</button>
+  </form>
+</section>
+{% endif %}
+
+{% if lab.parent_lab_id is none %}
+<section class="card" id="hol-updates">
+  <h2>HOL updates</h2>
+  <ul class="link-list">
+    {% for update in lab.updates %}
+    <li><a class="doc-link" href="{{ rp }}/labs/{{ update.id }}">{{ update.name }}</a>
+      <span class="spill rel">Revision: {{ update.revision or 'Not set' }}</span>
+      {% if update.archived_at %}<span class="muted">(Archived)</span>{% endif %}</li>
+    {% else %}<li class="muted">No updates yet. Use Update next to the title to create one.</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
 
 {% endblock %}
 {% block scripts %}

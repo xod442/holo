@@ -1,4 +1,4 @@
-"""Dashboard filters use current-phase state and preserve owner filtering."""
+"""Dashboard and Mallmanac filters use current-phase state and combine with owners."""
 from datetime import datetime
 
 import pytest
@@ -33,9 +33,10 @@ def portfolio(db_session, member_user, manager_user):
 @pytest.mark.parametrize("state", [
     "approved", "completed", "awaiting_approval", "in_progress", "not_started", "blocked",
 ])
-def test_status_matches_only_current_or_final_phase(client, portfolio, member_user, state):
+@pytest.mark.parametrize("path", ["/", "/mallmanac"])
+def test_status_matches_only_current_or_final_phase(client, portfolio, member_user, state, path):
     login(client, member_user)
-    response = client.get("/", params={"owner": member_user.id, "phase_state": state})
+    response = client.get(path, params={"owner": member_user.id, "phase_state": state})
     assert response.status_code == 200
     for candidate in portfolio:
         assert (f"FilterLab-{candidate}" in response.text) == (candidate == state)
@@ -45,9 +46,10 @@ def test_status_matches_only_current_or_final_phase(client, portfolio, member_us
     assert f'value="{state}" selected' in response.text
 
 
-def test_unfinished_excludes_only_fully_finished_labs(client, portfolio, member_user):
+@pytest.mark.parametrize("path", ["/", "/mallmanac"])
+def test_unfinished_excludes_only_fully_finished_labs(client, portfolio, member_user, path):
     login(client, member_user)
-    response = client.get("/", params={"phase_state": "unfinished"})
+    response = client.get(path, params={"phase_state": "unfinished"})
     assert "FilterLab-approved" not in response.text
     assert "FilterLab-completed" not in response.text
     for state in ("awaiting_approval", "in_progress", "not_started", "blocked"):
@@ -55,23 +57,25 @@ def test_unfinished_excludes_only_fully_finished_labs(client, portfolio, member_
     assert "OtherOwnerLab" in response.text
     assert "5 of 7 labs" in response.text
     assert "ArchivedFilterLab" not in response.text
-    all_labs = client.get("/")
+    all_labs = client.get(path)
     assert "7 of 7 labs" in all_labs.text
 
 
-def test_unassigned_and_empty_results(client, db_session, member_user):
+@pytest.mark.parametrize("path", ["/", "/mallmanac"])
+def test_unassigned_and_empty_results(client, db_session, member_user, path):
     lab = create_lab(db_session, name="UnassignedBlocked", owner_id=None)
     lab.phases[0].state = "blocked"
     db_session.commit()
     login(client, member_user)
     assert "UnassignedBlocked" in client.get(
-        "/", params={"owner": "unassigned", "phase_state": "blocked"},
+        path, params={"owner": "unassigned", "phase_state": "blocked"},
     ).text
-    page = client.get("/", params={"owner": "unassigned", "phase_state": "completed"})
+    page = client.get(path, params={"owner": "unassigned", "phase_state": "completed"})
     assert "No labs match these filters." in page.text
     assert "Show all labs" in page.text
 
 
-def test_invalid_filter_is_rejected(client, member_user):
+@pytest.mark.parametrize("path", ["/", "/mallmanac"])
+def test_invalid_filter_is_rejected(client, member_user, path):
     login(client, member_user)
-    assert client.get("/", params={"phase_state": "invalid"}).status_code == 400
+    assert client.get(path, params={"phase_state": "invalid"}).status_code == 400

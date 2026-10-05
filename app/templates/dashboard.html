@@ -62,10 +62,20 @@
 
 {% if cards %}
   {% for c in cards %}
-  <a class="card lab-card" href="{{ rp }}/labs/{{ c.lab.id }}">
+  <article class="card lab-card">
     <div class="lab-card-top">
       <div>
-        <h3 class="lab-name">{{ c.lab.name }}</h3>
+        <div class="hol-title-row">
+          <h3 class="lab-name"><a class="lab-title-link" href="{{ rp }}/labs/{{ c.lab.id }}">{{ c.lab.name }}</a></h3>
+          {% if c.lab.parent_lab_id is not none %}
+          <span class="spill rel">Revision: {{ c.lab.revision or 'Not set' }}</span>
+          {% endif %}
+          {% if c.lab.parent_lab_id is none %}
+          <form method="post" action="{{ rp }}/labs/{{ c.lab.id }}/update">
+            <button class="btn btn-sm ghost" type="submit">Update</button>
+          </form>
+          {% endif %}
+        </div>
         <div class="lab-meta">
           {% if c.lab.course_id %}Course {{ c.lab.course_id }} · {% endif %}
           {% if c.lab.owner %}{{ c.lab.owner.email }}{% else %}Unassigned{% endif %}
@@ -75,7 +85,7 @@
       <span class="status-badge status-{{ c.status|replace(' ', '-')|lower }}">{{ c.status }}</span>
     </div>
 
-    <div class="progress8">
+    <div class="progress8{% if c.lab.parent_lab_id %} production-only-progress{% endif %}">
       {% for p in c.phases %}
       <div class="seg {{ p.state }}" title="{{ p.name }} — {{ p.state|replace('_',' ') }}"></div>
       {% endfor %}
@@ -87,7 +97,7 @@
       {% if c.current %}<span class="muted">· Now: {{ c.current.name }}</span>{% endif %}
       <span class="muted hrs">{{ c.hours.actual|round(1) }} / {{ c.hours.estimated }} hrs</span>
     </div>
-  </a>
+  </article>
   {% endfor %}
 {% else %}
   <div class="card empty">

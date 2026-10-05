@@ -52,6 +52,14 @@ def _ensure_columns() -> None:
             conn.execute(text("ALTER TABLE labs ADD COLUMN course_id VARCHAR NOT NULL DEFAULT ''"))
         if "github_request_sent_at" not in lab_cols:
             conn.execute(text("ALTER TABLE labs ADD COLUMN github_request_sent_at DATETIME"))
+        if "parent_lab_id" not in lab_cols:
+            conn.execute(text("ALTER TABLE labs ADD COLUMN parent_lab_id INTEGER REFERENCES labs(id)"))
+        if "revision" not in lab_cols:
+            conn.execute(text("ALTER TABLE labs ADD COLUMN revision VARCHAR NOT NULL DEFAULT ''"))
+
+        link_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(lab_links)"))}
+        if "task_id" not in link_cols:
+            conn.execute(text("ALTER TABLE lab_links ADD COLUMN task_id INTEGER REFERENCES tasks(id)"))
         if "archived_at" not in lab_cols:
             conn.execute(text("ALTER TABLE labs ADD COLUMN archived_at DATETIME"))
         if "archived_by_id" not in lab_cols:

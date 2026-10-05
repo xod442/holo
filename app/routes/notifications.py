@@ -9,7 +9,7 @@ from .. import notifier
 from .. import audit
 from ..db import get_db
 from ..deps import get_current_user
-from ..labs_template import PHASE_TEMPLATE
+from ..labs_template import PHASE_TEMPLATE, UPDATE_PHASE_TEMPLATE
 from ..models import (
     NotificationList,
     NotificationRecipient,
@@ -21,7 +21,7 @@ from ..web import templates
 
 router = APIRouter()
 
-PHASE_NAMES = [p["name"] for p in PHASE_TEMPLATE]
+PHASE_NAMES = [p["name"] for p in PHASE_TEMPLATE + UPDATE_PHASE_TEMPLATE]
 
 
 def _guard(user):

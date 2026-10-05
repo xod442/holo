@@ -37,6 +37,15 @@ def _back(lab_id: int) -> RedirectResponse:
     return RedirectResponse(f"/labs/{lab_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
+def _matches_phase_status(lab: Lab, phase_state: str) -> bool:
+    if phase_state == "unfinished":
+        return svc.lab_status(lab) != "Complete"
+    if phase_state == "all":
+        return True
+    effective = svc.current_phase(lab) or (lab.phases[-1] if lab.phases else None)
+    return effective is not None and effective.state == phase_state
+
+
 @router.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, owner: str = "", phase_state: str = "all",
               db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -67,13 +76,7 @@ def dashboard(request: Request, owner: str = "", phase_state: str = "all",
             return False
         if owner not in ("", "all", "unassigned") and str(lab.owner_id) != owner:
             return False
-        current = svc.current_phase(lab)
-        if phase_state == "unfinished":
-            return svc.lab_status(lab) != "Complete"
-        if phase_state == "all":
-            return True
-        effective = current or (lab.phases[-1] if lab.phases else None)
-        return effective is not None and effective.state == phase_state
+        return _matches_phase_status(lab, phase_state)
 
     labs = [lab for lab in all_labs if _keep(lab)]
     cards = [
@@ -122,11 +125,14 @@ def dashboard(request: Request, owner: str = "", phase_state: str = "all",
 
 @router.get("/mallmanac", response_class=HTMLResponse)
 def mallmanac(request: Request, owner: str = "", ok: int = 1, msg: str = "",
+             phase_state: str = "all",
              db: Session = Depends(get_db), user=Depends(get_current_user)):
     """Lifecycle map: every lab as a 4-dev / 4-prod column grid of task pills,
     with independent task toggles and a pin on the furthest completed task."""
     if user is None:
         return _login()
+    if phase_state not in {"all", "unfinished", *(state for state, _ in DASHBOARD_STATES)}:
+        raise HTTPException(status_code=400, detail="Invalid Mallmanac status filter.")
     axis = PHASE_AXIS
     all_labs = db.query(Lab).filter(Lab.archived_at.is_(None)).order_by(Lab.created_at).all()
 
@@ -140,11 +146,11 @@ def mallmanac(request: Request, owner: str = "", ok: int = 1, msg: str = "",
     owner_options = sorted(owner_options.items(), key=lambda kv: kv[1])
 
     def _keep(lab) -> bool:
-        if owner in ("", "all"):
-            return True
-        if owner == "unassigned":
-            return lab.owner_id is None
-        return str(lab.owner_id) == owner
+        if owner == "unassigned" and lab.owner_id is not None:
+            return False
+        if owner not in ("", "all", "unassigned") and str(lab.owner_id) != owner:
+            return False
+        return _matches_phase_status(lab, phase_state)
 
     labs = [lab for lab in all_labs if _keep(lab)]
     rows = []
@@ -185,6 +191,9 @@ def mallmanac(request: Request, owner: str = "", ok: int = 1, msg: str = "",
             "owner_sel": owner,
             "has_unassigned": has_unassigned,
             "total_labs": len(all_labs),
+            "phase_state_sel": phase_state,
+            "phase_state_options": DASHBOARD_STATES,
+            "filters_active": owner not in ("", "all") or phase_state != "all",
         },
     )
 
@@ -205,6 +214,7 @@ def _github_request_feedback(db: Session, lab: Lab, phase: Phase, user) -> tuple
 
 @router.post("/labs/{lab_id}/tasks/{task_id}/complete")
 def save_task(lab_id: int, task_id: int, done: str = Form(...), owner: str = Form(""),
+              phase_state: str = Form("all"),
               db: Session = Depends(get_db), user=Depends(get_current_user)):
     if user is None:
         return _login()
@@ -214,7 +224,13 @@ def save_task(lab_id: int, task_id: int, done: str = Form(...), owner: str = For
     if done not in ("0", "1"):
         raise HTTPException(status_code=400, detail="Task completion must be 0 or 1.")
     before = task.done
-    svc.set_task_done(db, task, done=done == "1", user_id=user.id)
+    try:
+        svc.set_task_done(db, task, done=done == "1", user_id=user.id)
+    except ValueError as exc:
+        return RedirectResponse(
+            f"/mallmanac?owner={quote(owner, safe='')}&phase_state={quote(phase_state, safe='')}&ok=0&msg={quote(str(exc))}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     lab = task.phase.lab
     if before != task.done:
         audit.log(db, user, "task.complete" if task.done else "task.reopen",
@@ -223,9 +239,11 @@ def save_task(lab_id: int, task_id: int, done: str = Form(...), owner: str = For
     feedback = None
     if task.title == "Git Repo Request" and task.done:
         feedback = _github_request_feedback(db, lab, task.phase, user)
-    ok, message = feedback or (True, f"{task.title}: {'completed' if task.done else 'reopened'}. Phase gates unchanged.")
+    suffix = ("Update checklists saved; Manager approval still gates release."
+              if lab.parent_lab_id else "Phase gates unchanged.")
+    ok, message = feedback or (True, f"{task.title}: {'completed' if task.done else 'reopened'}. {suffix}")
     return RedirectResponse(
-        f"/mallmanac?owner={quote(owner, safe='')}&ok={int(ok)}&msg={quote(message)}",
+        f"/mallmanac?owner={quote(owner, safe='')}&phase_state={quote(phase_state, safe='')}&ok={int(ok)}&msg={quote(message)}",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -289,7 +307,7 @@ def metrics(request: Request, db: Session = Depends(get_db), user=Depends(get_cu
         })
 
     rows.sort(key=lambda r: r["percent"], reverse=True)
-    total_phases = total * 8
+    total_phases = sum(len(lab.phases) for lab in labs)
     m = {
         "total": total,
         "released": released,
@@ -433,7 +451,11 @@ def lab_detail(lab_id: int, request: Request, db: Session = Depends(get_db),
             "user": user,
             "lab": lab,
             "phase_rows": phase_rows,
-            "links": lab.links,
+            "links": [link for link in lab.links if link.task_id is None],
+            "content_task": next((t for p in lab.phases for t in p.tasks
+                                  if lab.parent_lab_id is not None
+                                  and p.position == 5 and t.position == 0), None),
+            "content_links": [link for link in lab.links if link.task_id is not None],
             "progress": svc.progress(lab),
             "status": svc.lab_status(lab),
             "hours": svc.hours_summary(lab),
@@ -444,6 +466,25 @@ def lab_detail(lab_id: int, request: Request, db: Session = Depends(get_db),
             "ok": request.query_params.get("ok", "1") == "1",
         },
     )
+
+
+@router.post("/labs/{lab_id}/update")
+def create_update(lab_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return _login()
+    source = db.get(Lab, lab_id)
+    if source is None:
+        raise HTTPException(status_code=404, detail="HOL not found.")
+    try:
+        update = svc.create_update(db, source)
+    except ValueError as exc:
+        return RedirectResponse(
+            f"/labs/{source.id}?ok=0&msg={quote(str(exc))}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    audit.log(db, user, "lab.update_create", target_type="lab", target_id=update.id,
+              target_label=update.name, details=f"source_lab_id={source.id}")
+    return _back(update.id)
 
 
 @router.get("/labs/{lab_id}/calendar", response_class=HTMLResponse)
@@ -581,6 +622,31 @@ def set_abstract(lab_id: int, abstract: str = Form(""),
     return _back(lab_id)
 
 
+@router.post("/labs/{lab_id}/revision")
+def set_revision(lab_id: int, revision: str = Form(""),
+                 db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return _login()
+    lab = db.get(Lab, lab_id)
+    if lab is None:
+        raise HTTPException(status_code=404, detail="HOL not found.")
+    if lab.parent_lab_id is None:
+        raise HTTPException(status_code=400, detail="Revisions are only available on HOL updates.")
+    if user.role not in STAFF_ROLES and lab.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Only the owner or staff can edit the revision.")
+    revision = revision.strip()
+    if len(revision) > 80:
+        return RedirectResponse(
+            f"/labs/{lab_id}?ok=0&msg={quote('Revision must be 80 characters or fewer.')}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    lab.revision = revision
+    db.commit()
+    audit.log(db, user, "lab.revision_set", target_type="lab", target_id=lab.id,
+              target_label=lab.name, details=f"revision={revision}")
+    return _back(lab_id)
+
+
 @router.post("/labs/{lab_id}/links")
 def add_link(lab_id: int, url: str = Form(...), label: str = Form(""),
              db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -591,6 +657,29 @@ def add_link(lab_id: int, url: str = Form(...), label: str = Form(""),
         if svc.add_link(db, lab, url=url, label=label, user_id=user.id):
             audit.log(db, user, "lab.link_add", target_type="lab", target_id=lab.id,
                       target_label=lab.name, details=f"url={url.strip()}")
+    return _back(lab_id)
+
+
+@router.post("/labs/{lab_id}/tasks/{task_id}/content")
+def add_content(lab_id: int, task_id: int, url: str = Form(...), label: str = Form(""),
+                db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return _login()
+    task = db.get(Task, task_id)
+    if (task is None or task.phase.lab_id != lab_id or task.phase.lab.parent_lab_id is None
+            or task.phase.position != 5 or task.position != 0):
+        raise HTTPException(status_code=404, detail="New Content task not found.")
+    url = url.strip()
+    if not svc.is_safe_url(url) or not url.lower().startswith("https://"):
+        return RedirectResponse(
+            f"/labs/{lab_id}?ok=0&msg={quote('New Content requires a valid HTTPS document link.')}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    db.add(LabLink(lab_id=lab_id, task_id=task.id, url=url, label=label.strip() or url,
+                   added_by_id=user.id))
+    db.commit()
+    audit.log(db, user, "lab.content_add", target_type="lab", target_id=lab_id,
+              target_label=task.phase.lab.name, details=f"task_id={task.id}, url={url}")
     return _back(lab_id)
 
 
@@ -691,10 +780,16 @@ async def save_pill(lab_id: int, phase_id: int, request: Request,
         # Snapshot before/after so the log records what actually changed.
         before_done = {t.id: t.done for t in phase.tasks}
         before = (phase.actual_hours, phase.notes, phase.target_date)
-        svc.save_phase(db, phase, actual_hours=hours,
-                       notes=str(form.get("notes", "")),
-                       target_date=str(form.get("target_date", "")),
-                       task_updates=task_updates, user_id=user.id)
+        try:
+            svc.save_phase(db, phase, actual_hours=hours,
+                           notes=str(form.get("notes", "")),
+                           target_date=str(form.get("target_date", "")),
+                           task_updates=task_updates, user_id=user.id)
+        except ValueError as exc:
+            return RedirectResponse(
+                f"/labs/{lab_id}?ok=0&msg={quote(str(exc))}",
+                status_code=status.HTTP_303_SEE_OTHER,
+            )
         changes = []
         if before[0] != phase.actual_hours:
             changes.append(f"hours {before[0]}->{phase.actual_hours}")

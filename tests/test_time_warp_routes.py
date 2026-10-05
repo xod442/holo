@@ -88,9 +88,13 @@ def test_admin_warp_end_to_end_reflects_on_mallmanac_and_audits(client, db_sessi
     target = _task(design, "Hardware & Software Requirements")
     login(client, admin_user)
 
-    resp = client.post(f"/admin/time-warp/{lab.id}/{target.id}", follow_redirects=False)
+    resp = client.post(f"/admin/time-warp/{lab.id}/{target.id}",
+                       data={"owner": str(member_user.id), "phase_state": "unfinished"},
+                       follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"].startswith("/mallmanac?ok=1")
+    assert f"owner={member_user.id}" in resp.headers["location"]
+    assert "phase_state=unfinished" in resp.headers["location"]
 
     db_session.refresh(lab)
     concept = _phase(lab, "Concept")

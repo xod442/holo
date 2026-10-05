@@ -119,6 +119,41 @@ approvals are preserved.
 
 ## Views
 
+### Production-only HOL updates
+
+Select **Update** beside a HOL title on the Dashboard, Mallmanac, or lab detail
+page to create a separate `<title> - Update` record. It keeps the original owner,
+course ID, and abstract, but starts with fresh tasks and no target release date.
+The source HOL is unchanged and lists links to its updates at the bottom. Each
+update also links back to its source. Updates cannot themselves be updated.
+Create every additional update from the original HOL; each appears as another
+link in that HOL's updates list.
+Each update has a revision pill, initially **Not set**. The owner or staff can
+select **Edit revision** on its detail page and save a free-text label (up to
+80 characters), such as `2` or `v1.1`. The revision also appears on Dashboard and
+Mallmanac entries and alongside the original HOL's update links.
+
+| Phase | Tasks |
+|-------|-------|
+| prod-1 / Update Preparation | GitHub Clone; Identify Hardware; Update Lab Guide; Submit for Approval |
+| prod-2 / Content & Testing | New Content; Alpha Testing; Beta Testing; Feedback |
+| prod-3 / Update Production | Digital Workshop Catalog Update; vLabs Scheduler; New Build Scripts; Automation; MTP Scripts |
+| prod-4 / Update Release | Train the Trainer; Go/No-Go; Completed |
+
+All four production phases start available. Tasks can be completed in any order,
+except **Completed**, which requires all other tasks done, no blocked phases, and
+Manager approval of prod-1. Checking **Submit for Approval** sends prod-1 to the
+Manager approval queue and uses the existing enabled mail forwarder/Manager email
+settings. Only Managers approve this gate; Time Warp cannot bypass it.
+Admins can Time Warp an update's tasks forward without sending email.
+Update phases follow their checklists, while Manager approval and phase blocks
+remain intact. Warping to **Completed** requires prod-1 approval and no blocks.
+Other update phases finish automatically when their checklists are done.
+SharePoint links for **New Content** are stored in the update record's dedicated
+content section. Saving a link does not automatically mark its task complete.
+Updates use four-phase progress in dashboards, metrics, calendars, and API
+summaries, and are included in database backups.
+
 - **Lab abstract** — shown once on the lab detail page. The owner or staff can
   select **Edit abstract** to reveal the existing text and **Save abstract**.
   Cancel editing restores the read-only view without saving changes.
@@ -142,6 +177,8 @@ approvals are preserved.
   Managers also see an **approval queue**, independently of portfolio filters.
 - **Mallmanac** (`/mallmanac`) — the "You Are Here!" map: each lab's 8 phase columns
   (4 dev / 4 prod) with task pills; a 📍 pin marks the furthest completed task.
+  Combine owner and phase status filters just like the Dashboard, including
+  **All except completed**. Clear resets both; task actions preserve the filters.
   Admins can toggle **Time Warp mode** here and click any pill to fast-forward
   that lab straight to that exact sub-process step.
 - **Lab detail** (`/labs/{id}`) — the workspace: pills, tasks, notes, hours, target
