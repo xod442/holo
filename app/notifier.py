@@ -5,11 +5,12 @@ notify boundary so the workflow always proceeds.
 """
 import logging
 import smtplib
+from datetime import datetime
 from email.message import EmailMessage
 
 from sqlalchemy.orm import Session
 
-from .models import MailConfig, NOTIFY_SUBMITTED, PhaseSubscription
+from .models import GitHubManager, Lab, MailConfig, NOTIFY_SUBMITTED, PhaseSubscription
 
 logger = logging.getLogger("holo.notifier")
 
@@ -28,7 +29,9 @@ def _send(cfg: MailConfig, recipients: list[str], subject: str, body: str) -> No
     msg["Subject"] = subject
     msg.set_content(body)
     with smtplib.SMTP(cfg.host, cfg.port, timeout=SMTP_TIMEOUT) as server:
-        server.send_message(msg)
+        refused = server.send_message(msg)
+        if refused:
+            raise smtplib.SMTPRecipientsRefused(refused)
 
 
 def send_test(db: Session, to_address: str) -> tuple[bool, str]:
@@ -69,6 +72,44 @@ def send(db: Session, to_address: str, subject: str, body: str) -> tuple[bool, s
     except Exception as exc:  # noqa: BLE001 — surface the relay error
         logger.warning("HOLO send failed: %s", exc)
         return False, f"Send failed: {exc}"
+
+
+def send_github_request(db: Session, lab: Lab) -> tuple[bool, str]:
+    """Send a repository request once per lab, independently of phase notifications."""
+    if lab.github_request_sent_at is not None:
+        return True, "GitHub repository request was already sent."
+    cfg = get_config(db)
+    recipients = [manager.email for manager in
+                  db.query(GitHubManager).order_by(GitHubManager.email)]
+    error = ""
+    if not recipients:
+        error = "No GitHub managers configured in the Admin console."
+    elif cfg is None or not cfg.host or not cfg.mail_from:
+        error = "Configure the mail forwarder host and from address in the Admin console."
+    elif lab.owner is None:
+        error = "Assign a lab owner so the repository request has a requestor."
+    if error:
+        logger.warning("GitHub repository request not sent for lab %s: %s", lab.id, error)
+        return False, error
+    assert cfg is not None and lab.owner is not None
+    lines = [
+        "Please prepare a GitHub repository for a new Hands On Lab.",
+        "",
+        f"Lab: {lab.name}",
+        f"Requestor: {lab.owner.email}",
+    ]
+    if cfg.app_base_url:
+        lines.extend(["", f"Open in HOLO: {cfg.app_base_url.rstrip('/')}/labs/{lab.id}"])
+    try:
+        _send(cfg, recipients, f"[HOLO] GitHub repository request: {lab.name}", "\n".join(lines))
+    except (smtplib.SMTPException, OSError, ValueError) as exc:
+        logger.warning("GitHub repository request failed for lab %s: %s", lab.id, exc)
+        return False, f"Mail forwarder failed: {exc}"
+    lab.github_request_sent_at = datetime.utcnow()
+    db.add(lab)
+    db.commit()
+    logger.info("GitHub repository request sent for lab %s to %d manager(s)", lab.id, len(recipients))
+    return True, "GitHub repository request emailed to the GitHub managers."
 
 
 def _body(cfg: MailConfig, lab, phase, event: str) -> str:

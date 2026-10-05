@@ -108,7 +108,7 @@ def restore_from(path: str) -> None:
 
     Disposes the SQLAlchemy pool first so no connection holds a lock, then copies
     pages in with the online-backup API (keeps the live file's inode/handle)."""
-    from .db import engine
+    from .db import Base, engine, _ensure_columns
     engine.dispose()
     src = sqlite3.connect(path)
     try:
@@ -120,6 +120,8 @@ def restore_from(path: str) -> None:
             dst.close()
     finally:
         src.close()
+    Base.metadata.create_all(engine)
+    _ensure_columns()
     logger.info("DB restored from: %s", path)
 
 

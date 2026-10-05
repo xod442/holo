@@ -136,7 +136,11 @@ Every lab follows this sequence:
 8. Post-Production Acceptance — completion
 
 Earlier phases must be finished before a later phase can start. Completing a
-phase automatically unlocks the next one.
+phase automatically unlocks the next one. This gates phase progression, not
+individual tasks: tasks can be completed and saved in any order, including in
+blocked phases or beyond phases awaiting approval. Checking tasks does not
+approve a phase or clear a block. The HOL remains unfinished until every phase
+is completed or approved, including all Manager approval gates.
 
 ### Completion phases
 
@@ -173,6 +177,10 @@ The Mallmanac shows every active lab as an eight-column lifecycle map:
 Development phases appear first, followed by Production phases.
 
 - A check mark indicates a completed task.
+- Any signed-in user can click a task pill to complete or reopen just that task,
+  regardless of phase order, blocks, or pending approvals. Changes save immediately.
+- Completing **Git Repo Request** sends the repository request to the configured
+  GitHub managers once per lab; sending failures are shown with retry instructions.
 - The location pin marks the furthest completed task.
 - Select a lab name to open its workspace.
 

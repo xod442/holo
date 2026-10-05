@@ -6,6 +6,8 @@
 {% endblock %}
 {% block content %}
 
+{% if msg %}<div class="alert {{ 'success' if ok else 'error' }}">{{ msg }}</div>{% endif %}
+
 <div class="page-head">
   <div>
     <a class="back" href="{{ rp }}/">&larr; Portfolio</a>
@@ -21,10 +23,13 @@
 {% if lab.abstract or can_change_owner %}
 <section class="card abstract-card">
   <span class="owner-label">Abstract</span>
-  {% if lab.abstract %}<p class="lab-desc">{{ lab.abstract }}</p>{% endif %}
+  <p class="lab-desc" id="abstract-text" {% if can_change_owner %}hidden{% endif %}>{{ lab.abstract or 'No abstract yet.' }}</p>
   {% if can_change_owner %}
-  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/abstract" class="abstract-form">
-    <textarea name="abstract" rows="3" placeholder="Short summary of the workshop for the abstract/catalog">{{ lab.abstract }}</textarea>
+  <button class="btn btn-sm ghost" type="button" id="edit-abstract"
+          aria-expanded="false" aria-controls="abstract-form" hidden>Edit abstract</button>
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/abstract" class="abstract-form" id="abstract-form">
+    <label for="abstract-input">Abstract text</label>
+    <textarea id="abstract-input" name="abstract" rows="3" placeholder="Short summary of the workshop for the abstract/catalog">{{ lab.abstract }}</textarea>
     <button class="btn btn-sm ghost" type="submit">Save abstract</button>
   </form>
   {% endif %}
@@ -143,6 +148,18 @@
       {% endfor %}
     </ul>
 
+    {% if p.position == 2 and p.stage == 'Development' %}
+    <p class="hint">
+      {% if lab.github_request_sent_at %}
+      GitHub repository request sent {{ lab.github_request_sent_at.strftime('%Y-%m-%d %H:%M') }} UTC.
+      Saving again will not resend it.
+      {% else %}
+      Check Git Repo Request and click Save to email the GitHub managers,
+      with the lab owner as requestor. If sending fails, save again after correcting the settings.
+      {% endif %}
+    </p>
+    {% endif %}
+
     <label class="notes-label">Phase notes</label>
     <textarea name="notes" rows="2" placeholder="Overall notes for this step…">{{ p.notes }}</textarea>
 
@@ -171,7 +188,7 @@
           <button class="btn btn-sm" type="submit">Start phase</button>
         </form>
         {% else %}
-        <span class="muted">🔒 Locked until previous phase is done</span>
+        <span class="muted">🔒 Phase progression locked until previous phase is done; tasks can be saved in any order.</span>
         {% endif %}
       {% elif p.state == 'in_progress' %}
         {% if p.requires_approval %}
@@ -220,6 +237,27 @@
 {% block scripts %}
 <script src="{{ rp }}/assets/vendor/flatpickr/flatpickr.min.js"></script>
 <script>
+  const editAbstract = document.getElementById("edit-abstract");
+  if (editAbstract) {
+    const abstractText = document.getElementById("abstract-text");
+    const abstractForm = document.getElementById("abstract-form");
+    const abstractInput = document.getElementById("abstract-input");
+    abstractText.hidden = false;
+    abstractForm.hidden = true;
+    editAbstract.hidden = false;
+    editAbstract.addEventListener("click", () => {
+      const editing = abstractForm.hidden;
+      abstractForm.hidden = !editing;
+      abstractText.hidden = editing;
+      editAbstract.setAttribute("aria-expanded", String(editing));
+      editAbstract.textContent = editing ? "Cancel editing" : "Edit abstract";
+      if (editing) {
+        abstractInput.focus();
+      } else {
+        abstractForm.reset();
+      }
+    });
+  }
   flatpickr(".datepick", { dateFormat: "Y-m-d", allowInput: true });
 </script>
 {% endblock %}

@@ -39,6 +39,7 @@ PHASE_TEMPLATE = [
         "tasks": [
             "Prototype",
             "Automation Pre-Requirements",
+            "Git Repo Request",
             "Lab Guide Development",
             "Objective Mapping and Timing",
             "Development Approval",

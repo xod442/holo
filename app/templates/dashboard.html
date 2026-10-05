@@ -18,10 +18,21 @@
     <option value="unassigned" {% if owner_sel == 'unassigned' %}selected{% endif %}>Unassigned</option>
     {% endif %}
   </select>
+  <label class="filter-label" for="phase-state">Phase status</label>
+  <select id="phase-state" name="phase_state" onchange="this.form.submit()"
+          aria-describedby="phase-state-help">
+    <option value="all" {% if phase_state_sel == 'all' %}selected{% endif %}>All statuses</option>
+    <option value="unfinished" {% if phase_state_sel == 'unfinished' %}selected{% endif %}>All except completed</option>
+    {% for value, label in phase_state_options %}
+    <option value="{{ value }}" {% if phase_state_sel == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
   <noscript><button class="btn btn-sm" type="submit">Filter</button></noscript>
   <span class="filter-count">{{ cards|length }} of {{ total_labs }} lab{{ '' if total_labs == 1 else 's' }}</span>
-  {% if owner_sel not in ('', 'all') %}<a class="filter-clear" href="{{ rp }}/">clear</a>{% endif %}
+  {% if filters_active %}<a class="filter-clear" href="{{ rp }}/">clear</a>{% endif %}
 </form>
+<p class="hint" id="phase-state-help">Status matches the current phase, or the final phase for finished labs.
+  All except completed hides fully finished labs. The approval queue is shown independently.</p>
 
 {% if awaiting %}
 <section class="card queue">
@@ -80,8 +91,8 @@
   {% endfor %}
 {% else %}
   <div class="card empty">
-    {% if owner_sel not in ('', 'all') %}
-      <p class="muted">No labs match this owner.</p>
+    {% if filters_active %}
+      <p class="muted">No labs match these filters.</p>
       <a class="btn" href="{{ rp }}/">Show all labs</a>
     {% else %}
       <p class="muted">No labs yet.</p>

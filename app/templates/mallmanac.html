@@ -13,7 +13,9 @@
 </div>
 <div class="mm2-headline">📍 You Are Here!</div>
 <p class="muted overview-sub">The lifecycle map for every lab — the pin marks the furthest completed
-  sub-process. ✓ = done. Click a lab name to open it.
+  sub-process, not approval readiness. ✓ = done. Click any task to complete or reopen it,
+  in any order. Phase blocks and manager approvals remain in place; all phases must
+  be completed or approved before the HOL is complete. Click a lab name to open it.
   {% if user.role == 'admin' %}Turn on <strong>Time Warp mode</strong> above, then click any pill to
   fast-forward that lab to that step (earlier phases are auto-approved/completed; forward-only).{% endif %}</p>
 
@@ -40,7 +42,7 @@
   <section class="card mm2-card">
     <div class="mm2-summary">
       <div class="mm2-summary-main">
-        <span class="mm2-title">{{ r.lab.name }}</span>
+        <a class="mm2-title" href="{{ rp }}/labs/{{ r.lab.id }}">{{ r.lab.name }}</a>
         {% if r.lab.course_id %}<span class="muted">Course {{ r.lab.course_id }}</span>{% endif %}
       </div>
       <div class="mm2-progress-wrap" aria-label="{{ r.progress.percent }}% complete">
@@ -60,12 +62,11 @@
         </span>
       </div>
 
-      <div class="mm2-stagehead">
-        <div class="mm2-stage">Development</div>
-        <div class="mm2-stage">Production</div>
-      </div>
-
       <div class="mm2-scroll">
+        <div class="mm2-stagehead">
+          <div class="mm2-stage">Development</div>
+          <div class="mm2-stage">Production</div>
+        </div>
         <div class="mm2-grid">
           {% for c in r.cols %}
           <div class="mm2-col">
@@ -73,23 +74,20 @@
               <span class="mm2-code">{{ c.code }}</span>{{ c.name }}
             </div>
             {% for t in c.tasks %}
-            {% if user.role == 'admin' %}
-            <form method="post" action="{{ rp }}/admin/time-warp/{{ r.lab.id }}/{{ t.id }}"
-                  class="mm2-task-form" data-lab="{{ r.lab.name }}" data-step="{{ c.name }} / {{ t.title }}">
+            <form method="post" action="{{ rp }}/labs/{{ r.lab.id }}/tasks/{{ t.id }}/complete"
+                  class="mm2-task-form" data-lab="{{ r.lab.name }}" data-step="{{ c.name }} / {{ t.title }}"
+                  {% if user.role == 'admin' %}data-warp-action="{{ rp }}/admin/time-warp/{{ r.lab.id }}/{{ t.id }}"{% endif %}>
+              <input type="hidden" name="done" value="{{ '0' if t.done else '1' }}">
+              <input type="hidden" name="owner" value="{{ owner_sel }}">
               <button type="submit"
                       class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
-                      title="{{ t.title }}">
+                      aria-label="{{ 'Reopen' if t.done else 'Complete' }} {{ c.name }} / {{ t.title }}"
+                      aria-pressed="{{ 'true' if t.done else 'false' }}"
+                      title="{{ 'Reopen' if t.done else 'Complete' }} {{ t.title }}">
                 {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
                 <span class="mm2-tasktext">{{ t.title }}</span>
               </button>
             </form>
-            {% else %}
-            <div class="mm2-task{% if t.done %} done{% endif %}{% if t.id == r.pin %} here{% endif %}"
-                 title="{{ t.title }}">
-              {% if t.id == r.pin %}<span class="mm2-pin" title="You are here">📍</span>{% endif %}
-              <span class="mm2-tasktext">{{ t.title }}</span>
-            </div>
-            {% endif %}
             {% endfor %}
           </div>
           {% endfor %}
@@ -125,7 +123,6 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.mm2-task-form').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       if (!body.classList.contains('warp-mode')) {
-        e.preventDefault();
         return;
       }
       var msg = 'Time Warp "' + form.dataset.lab + '" to "' + form.dataset.step + '"?\n\n' +
@@ -133,6 +130,8 @@ document.addEventListener('DOMContentLoaded', function () {
         'earlier step in this phase will be checked off. This can\'t be undone from here.';
       if (!confirm(msg)) {
         e.preventDefault();
+      } else {
+        form.action = form.dataset.warpAction;
       }
     });
   });

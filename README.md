@@ -13,6 +13,9 @@ FastAPI + SQLite app, Dockerized, Opal-styled (dark theme, HPE branding).
 - **Portfolio dashboard** with an 8-segment progress bar per lab + owner filter
 - **Mallmanac** — a "You Are Here!" lifecycle map across all labs
 - **Per-lab calendar** of phase target dates
+- **Independent task completion** — every signed-in user can complete or reopen
+  Mallmanac task pills in any order, without changing phase blocks or approvals.
+  HOL completion still requires all phases to be completed/Manager-approved.
 - **Gated lifecycle** — approval gates vs. completion steps, per-step notes, target dates
 - **Time Warp** — admin clicks any sub-process pill on the Mallmanac to fast-forward
   a lab that was already completed/near-complete before HOLO existed straight to
@@ -107,12 +110,36 @@ Each pill has its sub-process **tasks** (checkable), a **per-step note** on each
 **phase notes**, an **actual-hours** field vs. the estimate, and a **target date**
 (flatpickr) — all saved with one **Save** button.
 
+Dev 3 includes **Git Repo Request** immediately after **Automation Pre-Requirements**.
+Startup and backup restoration add this task to existing labs, including archived
+and completed labs. The new task starts unchecked; existing task data and phase
+approvals are preserved.
+
 ---
 
 ## Views
 
+- **Lab abstract** — shown once on the lab detail page. The owner or staff can
+  select **Edit abstract** to reveal the existing text and **Save abstract**.
+  Cancel editing restores the read-only view without saving changes.
+- **Admin GitHub managers** — Admins and Managers can save a list of contact email
+  addresses in the Admin console. Use one address per line, commas, or semicolons.
+  Addresses are normalized and deduplicated; removing an address and saving removes
+  it from the list. The list is stored in the HOLO database and included in backups.
+  It does not grant HOLO/GitHub permissions. Completing **Git Repo Request** on the
+  Mallmanac, or saving it checked in Dev 3, emails these contacts:
+  "Please prepare a GitHub repository for a new
+  Hands On Lab," with the lab title and its owner's email as the requestor.
+  This uses the mail forwarder independently of the phase-notification toggle.
+  A successful request is recorded once per lab, even if the task is unchecked
+  and checked again. Failures are shown on the lab page and logged; correct the
+  configuration and save Dev 3 again to retry. Time Warp does not send requests.
 - **Dashboard** (`/`) — one card per lab: 8-segment progress bar, status, % done,
-  current phase, hours. Filter by **owner**. Managers also see an **approval queue**.
+  current phase, hours. Combine **owner** and **phase status** filters (Approved,
+  Completed, Awaiting, In progress, Not started, Blocked). Status matches the first
+  unfinished phase; finished labs use their final phase's state. **All except
+  completed** hides only fully finished labs. Clear resets both filters.
+  Managers also see an **approval queue**, independently of portfolio filters.
 - **Mallmanac** (`/mallmanac`) — the "You Are Here!" map: each lab's 8 phase columns
   (4 dev / 4 prod) with task pills; a 📍 pin marks the furthest completed task.
   Admins can toggle **Time Warp mode** here and click any pill to fast-forward

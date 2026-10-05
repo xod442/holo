@@ -125,22 +125,15 @@ def backup_env(tmp_path, monkeypatch):
     db_path.parent.mkdir(parents=True, exist_ok=True)
     backup_dir = tmp_path / "backups"
 
-    # A minimal but schema-valid HOLO database (matches is_valid_holo_db's check).
-    import sqlite3
-    con = sqlite3.connect(str(db_path))
-    try:
-        con.executescript(
-            "CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT);"
-            "CREATE TABLE labs (id INTEGER PRIMARY KEY, name TEXT);"
-            "CREATE TABLE phases (id INTEGER PRIMARY KEY, name TEXT);"
-        )
-        con.commit()
-    finally:
-        con.close()
+    from app import db
+    engine = create_engine(f"sqlite:///{db_path}")
+    Base.metadata.create_all(engine)
+    monkeypatch.setattr(db, "engine", engine)
 
     monkeypatch.setattr(config, "DB_PATH", str(db_path))
     monkeypatch.setattr(config, "BACKUP_DIR", str(backup_dir))
-    return {"db_path": str(db_path), "backup_dir": str(backup_dir)}
+    yield {"db_path": str(db_path), "backup_dir": str(backup_dir)}
+    engine.dispose()
 
 
 class FakeSMTP:

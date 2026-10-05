@@ -300,6 +300,24 @@ def set_owner(db: Session, lab: Lab, owner_id: int | None) -> bool:
     return True
 
 
+def _update_task_completion(task: Task, done: bool, user_id: int) -> None:
+    if done and not task.done:
+        task.done = True
+        task.done_by_id = user_id
+        task.done_at = datetime.utcnow()
+    elif not done and task.done:
+        task.done = False
+        task.done_by_id = None
+        task.done_at = None
+
+
+def set_task_done(db: Session, task: Task, *, done: bool, user_id: int) -> None:
+    """Save one task independently of phase locks, without changing phase state."""
+    _update_task_completion(task, done, user_id)
+    db.add(task)
+    db.commit()
+
+
 def save_phase(db: Session, phase: Phase, *, actual_hours: float | None,
                notes: str, target_date: str, task_updates: dict[int, dict],
                user_id: int) -> bool:
@@ -315,15 +333,7 @@ def save_phase(db: Session, phase: Phase, *, actual_hours: float | None,
         if upd is None:
             continue
         task.note = (upd.get("note") or "").strip()
-        new_done = bool(upd.get("done"))
-        if new_done and not task.done:
-            task.done = True
-            task.done_by_id = user_id
-            task.done_at = datetime.utcnow()
-        elif not new_done and task.done:
-            task.done = False
-            task.done_by_id = None
-            task.done_at = None
+        _update_task_completion(task, bool(upd.get("done")), user_id)
         db.add(task)
 
     db.add(phase)

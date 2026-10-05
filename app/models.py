@@ -69,6 +69,7 @@ class Lab(Base):
     abstract: Mapped[str] = mapped_column(Text, default="")
     target_release: Mapped[str] = mapped_column(String, default="")
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    github_request_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     # Archived labs are hidden from the dashboard/mallmanac (None = active).
     archived_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -177,6 +178,14 @@ class MailConfig(Base):
     default_to: Mapped[str] = mapped_column(String, default="")  # fallback / test target
     manager_email: Mapped[str] = mapped_column(String, default="")
     app_base_url: Mapped[str] = mapped_column(String, default="")  # for links in emails
+
+
+class GitHubManager(Base):
+    """GitHub repository contacts, independent of HOLO user permissions."""
+    __tablename__ = "github_managers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
 
 
 class NotificationList(Base):

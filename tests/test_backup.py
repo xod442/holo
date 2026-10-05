@@ -6,8 +6,10 @@ in-memory `db_session` used for everything else.
 import os
 import sqlite3
 from datetime import datetime, timedelta
+from sqlalchemy import insert
 
-from app import backup
+from app import backup, db
+from app.models import User
 
 
 class _FakeClock:
@@ -120,21 +122,13 @@ def test_restore_from_overwrites_live_db(backup_env, monkeypatch):
     live_path = backup_env["db_path"]
 
     # Mutate the live DB, then take a backup of that state.
-    con = sqlite3.connect(live_path)
-    try:
-        con.execute("INSERT INTO users (id, email) VALUES (1, 'before@test.local')")
-        con.commit()
-    finally:
-        con.close()
+    with db.engine.begin() as conn:
+        conn.execute(insert(User).values(id=1, email="before@test.local", password_hash="unused"))
     snapshot = backup.make_backup()
 
     # Mutate the live DB again (this is the state we'll discard).
-    con = sqlite3.connect(live_path)
-    try:
-        con.execute("INSERT INTO users (id, email) VALUES (2, 'after@test.local')")
-        con.commit()
-    finally:
-        con.close()
+    with db.engine.begin() as conn:
+        conn.execute(insert(User).values(id=2, email="after@test.local", password_hash="unused"))
 
     backup.restore_from(snapshot)
 

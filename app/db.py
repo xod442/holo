@@ -1,5 +1,6 @@
 """Database engine, session factory, and schema init."""
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Connection
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from . import config
@@ -49,6 +50,8 @@ def _ensure_columns() -> None:
         lab_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(labs)"))}
         if "course_id" not in lab_cols:
             conn.execute(text("ALTER TABLE labs ADD COLUMN course_id VARCHAR NOT NULL DEFAULT ''"))
+        if "github_request_sent_at" not in lab_cols:
+            conn.execute(text("ALTER TABLE labs ADD COLUMN github_request_sent_at DATETIME"))
         if "archived_at" not in lab_cols:
             conn.execute(text("ALTER TABLE labs ADD COLUMN archived_at DATETIME"))
         if "archived_by_id" not in lab_cols:
@@ -86,6 +89,33 @@ def _ensure_columns() -> None:
             conn.execute(
                 text("ALTER TABLE mail_config ADD COLUMN manager_email VARCHAR NOT NULL DEFAULT ''")
             )
+        _backfill_git_repo_request(conn)
+
+
+def _backfill_git_repo_request(conn: Connection) -> None:
+    """Insert the new Dev 3 task without rewriting existing task records."""
+    phases = conn.execute(text(
+        "SELECT id FROM phases WHERE position = 2 AND stage = 'Development'"
+    )).scalars().all()
+    for phase_id in phases:
+        tasks = conn.execute(
+            text("SELECT title, position FROM tasks WHERE phase_id = :phase_id ORDER BY position, id"),
+            {"phase_id": phase_id},
+        ).all()
+        if any(task.title == "Git Repo Request" for task in tasks):
+            continue
+        anchor = next((task for task in tasks if task.title == "Automation Pre-Requirements"), None)
+        position = anchor.position + 1 if anchor is not None else 2
+        conn.execute(
+            text("UPDATE tasks SET position = position + 1 "
+                 "WHERE phase_id = :phase_id AND position >= :position"),
+            {"phase_id": phase_id, "position": position},
+        )
+        conn.execute(
+            text("INSERT INTO tasks (phase_id, position, title, note, done) "
+                 "VALUES (:phase_id, :position, 'Git Repo Request', '', 0)"),
+            {"phase_id": phase_id, "position": position},
+        )
 
 
 def seed_default_admin() -> None:

@@ -1,23 +1,33 @@
 """Lab portfolio dashboard, lab detail, and gated lifecycle actions."""
 import calendar as _calendar
 from datetime import date, datetime, timedelta
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from .. import lab_service as svc
-from .. import audit
+from .. import audit, notifier
 from ..db import get_db
 from ..deps import get_current_user
 from ..labs_template import PHASE_AXIS, TOTAL_ESTIMATED_HOURS
 from ..models import (
-    Lab, LabLink, Phase, User,
+    Lab, LabLink, Phase, Task, User,
     ROLE_MANAGER, STAFF_ROLES, PHASE_AWAITING,
 )
 from ..web import templates
 
 router = APIRouter()
+
+DASHBOARD_STATES = (
+    ("approved", "Approved"),
+    ("completed", "Completed"),
+    ("awaiting_approval", "Awaiting"),
+    ("in_progress", "In progress"),
+    ("not_started", "Not started"),
+    ("blocked", "Blocked"),
+)
 
 def _login() -> RedirectResponse:
     return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
@@ -28,10 +38,12 @@ def _back(lab_id: int) -> RedirectResponse:
 
 
 @router.get("/", response_class=HTMLResponse)
-def dashboard(request: Request, owner: str = "",
+def dashboard(request: Request, owner: str = "", phase_state: str = "all",
               db: Session = Depends(get_db), user=Depends(get_current_user)):
     if user is None:
         return _login()
+    if phase_state not in {"all", "unfinished", *(state for state, _ in DASHBOARD_STATES)}:
+        raise HTTPException(status_code=400, detail="Invalid dashboard status filter.")
 
     all_labs = (
         db.query(Lab)
@@ -51,11 +63,17 @@ def dashboard(request: Request, owner: str = "",
     owner_options = sorted(owner_options.items(), key=lambda kv: kv[1])
 
     def _keep(lab) -> bool:
-        if owner in ("", "all"):
+        if owner == "unassigned" and lab.owner_id is not None:
+            return False
+        if owner not in ("", "all", "unassigned") and str(lab.owner_id) != owner:
+            return False
+        current = svc.current_phase(lab)
+        if phase_state == "unfinished":
+            return svc.lab_status(lab) != "Complete"
+        if phase_state == "all":
             return True
-        if owner == "unassigned":
-            return lab.owner_id is None
-        return str(lab.owner_id) == owner
+        effective = current or (lab.phases[-1] if lab.phases else None)
+        return effective is not None and effective.state == phase_state
 
     labs = [lab for lab in all_labs if _keep(lab)]
     cards = [
@@ -95,6 +113,9 @@ def dashboard(request: Request, owner: str = "",
             "has_unassigned": has_unassigned,
             "owner_sel": owner,
             "total_labs": len(all_labs),
+            "phase_state_sel": phase_state,
+            "phase_state_options": DASHBOARD_STATES,
+            "filters_active": owner not in ("", "all") or phase_state != "all",
         },
     )
 
@@ -103,8 +124,7 @@ def dashboard(request: Request, owner: str = "",
 def mallmanac(request: Request, owner: str = "", ok: int = 1, msg: str = "",
              db: Session = Depends(get_db), user=Depends(get_current_user)):
     """Lifecycle map: every lab as a 4-dev / 4-prod column grid of task pills,
-    with a 'you are here' pin on the furthest completed task. Admins can
-    Time Warp a lab by clicking any pill (see admin/time-warp.py)."""
+    with independent task toggles and a pin on the furthest completed task."""
     if user is None:
         return _login()
     axis = PHASE_AXIS
@@ -166,6 +186,47 @@ def mallmanac(request: Request, owner: str = "", ok: int = 1, msg: str = "",
             "has_unassigned": has_unassigned,
             "total_labs": len(all_labs),
         },
+    )
+
+
+def _github_request_feedback(db: Session, lab: Lab, phase: Phase, user) -> tuple[bool, str] | None:
+    if (phase.position != 2 or phase.stage != "Development"
+            or lab.github_request_sent_at is not None
+            or not any(t.title == "Git Repo Request" and t.done for t in phase.tasks)):
+        return None
+    ok, message = notifier.send_github_request(db, lab)
+    audit.log(db, user, "lab.github_request_send" if ok else "lab.github_request_failed",
+              target_type="lab", target_id=lab.id, target_label=lab.name, details=message)
+    if not ok:
+        message = ("Task saved, but the GitHub repository request was not sent. "
+                   + message + " Fix the configuration and save Dev 3 again to retry.")
+    return ok, message
+
+
+@router.post("/labs/{lab_id}/tasks/{task_id}/complete")
+def save_task(lab_id: int, task_id: int, done: str = Form(...), owner: str = Form(""),
+              db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return _login()
+    task = db.get(Task, task_id)
+    if task is None or task.phase.lab_id != lab_id:
+        raise HTTPException(status_code=404, detail="Task not found in this lab.")
+    if done not in ("0", "1"):
+        raise HTTPException(status_code=400, detail="Task completion must be 0 or 1.")
+    before = task.done
+    svc.set_task_done(db, task, done=done == "1", user_id=user.id)
+    lab = task.phase.lab
+    if before != task.done:
+        audit.log(db, user, "task.complete" if task.done else "task.reopen",
+                  target_type="task", target_id=task.id,
+                  target_label=f"{lab.name} / {task.title}")
+    feedback = None
+    if task.title == "Git Repo Request" and task.done:
+        feedback = _github_request_feedback(db, lab, task.phase, user)
+    ok, message = feedback or (True, f"{task.title}: {'completed' if task.done else 'reopened'}. Phase gates unchanged.")
+    return RedirectResponse(
+        f"/mallmanac?owner={quote(owner, safe='')}&ok={int(ok)}&msg={quote(message)}",
+        status_code=status.HTTP_303_SEE_OTHER,
     )
 
 
@@ -379,6 +440,8 @@ def lab_detail(lab_id: int, request: Request, db: Session = Depends(get_db),
             "can_approve": user.role == ROLE_MANAGER,
             "users": db.query(User).order_by(User.email).all(),
             "can_change_owner": user.role in STAFF_ROLES or lab.owner_id == user.id,
+            "msg": request.query_params.get("msg", ""),
+            "ok": request.query_params.get("ok", "1") == "1",
         },
     )
 
@@ -646,6 +709,13 @@ async def save_pill(lab_id: int, phase_id: int, request: Request,
             audit.log(db, user, "phase.save", target_type="phase", target_id=phase.id,
                       target_label=f"{lab.name} / {phase.name}",
                       details="; ".join(changes))
+        feedback = _github_request_feedback(db, lab, phase, user)
+        if feedback is not None:
+            ok, message = feedback
+            return RedirectResponse(
+                f"/labs/{lab_id}?ok={int(ok)}&msg={quote(message)}",
+                status_code=status.HTTP_303_SEE_OTHER,
+            )
     return _back(lab_id)
 
 
@@ -671,4 +741,3 @@ def unblock(lab_id: int, phase_id: int, db: Session = Depends(get_db),
         audit.log(db, user, "phase.unblock", target_type="phase", target_id=phase.id,
                   target_label=f"{lab.name} / {phase.name}")
     return _back(lab_id)
-

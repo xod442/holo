@@ -44,6 +44,23 @@
   <p class="hint">Links are single-use and expire. Copy/paste them, or use ✉ Email to send via the forwarder.</p>
 </section>
 
+<section class="card" id="github-managers">
+  <h2>GitHub managers</h2>
+  <p class="hint" id="github-managers-help">Enter one email address per line, or separate addresses
+    with commas or semicolons. Edit the list to remove addresses; leave it empty to clear it.
+    These contacts do not need HOLO accounts and this list does not grant permissions.
+    Completing Git Repo Request on the Mallmanac, or saving it checked in Dev 3,
+    emails this list once per lab, using the
+    mail forwarder below, independently of the phase-notification toggle.</p>
+  <form method="post" action="{{ rp }}/admin/github-managers">
+    <label for="github-manager-emails">GitHub manager email addresses</label>
+    <textarea id="github-manager-emails" name="emails" rows="6"
+              aria-describedby="github-managers-help"
+              placeholder="manager@hpe.com&#10;another.manager@hpe.com">{{ github_manager_emails }}</textarea>
+    <button class="btn" type="submit">Save GitHub managers</button>
+  </form>
+</section>
+
 <section class="card">
   <h2>Mail forwarder</h2>
   <p class="hint">Unauthenticated SMTP relay — host/IP, port, and addresses only (no login).

@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 
 import os
+import re
 import secrets
 import tempfile
 from urllib.parse import quote
@@ -14,7 +15,7 @@ from .. import backup, config, notifier
 from .. import audit
 from ..db import get_db
 from ..deps import get_current_user
-from ..models import User, Invite, VALID_ROLES, ROLE_MEMBER, STAFF_ROLES
+from ..models import GitHubManager, User, Invite, VALID_ROLES, ROLE_MEMBER, STAFF_ROLES
 from ..security import generate_token, hash_password
 from ..web import templates
 
@@ -34,7 +35,7 @@ def _register_link(request: Request, token: str) -> str:
 
 
 def _render_admin_home(request, db, user, new_invite_link=None, new_invite_id=None,
-                       reset_info=None, msg="", ok=True):
+                       reset_info=None, msg="", ok=True, github_manager_emails=None):
     users = db.query(User).order_by(User.created_at).all()
     now = datetime.utcnow()
     pending = (
@@ -43,6 +44,10 @@ def _render_admin_home(request, db, user, new_invite_link=None, new_invite_id=No
         .order_by(Invite.created_at.desc())
         .all()
     )
+    if github_manager_emails is None:
+        github_manager_emails = "\n".join(
+            manager.email for manager in db.query(GitHubManager).order_by(GitHubManager.email)
+        )
     return templates.TemplateResponse(
         request,
         "admin_home.html",
@@ -59,6 +64,7 @@ def _render_admin_home(request, db, user, new_invite_link=None, new_invite_id=No
             "backups": backup.list_backups(),
             "msg": msg,
             "ok": ok,
+            "github_manager_emails": github_manager_emails,
         },
     )
 
@@ -71,6 +77,54 @@ def admin_console(request: Request, ok: int = 1, msg: str = "",
     if user.role not in STAFF_ROLES:
         return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
     return _render_admin_home(request, db, user, msg=msg, ok=bool(ok))
+
+
+def _valid_manager_email(email: str) -> bool:
+    if len(email) > 254 or email.count("@") != 1:
+        return False
+    local, domain = email.split("@")
+    return (
+        len(local) <= 64
+        and re.fullmatch(r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*", local)
+        is not None
+        and len(domain.split(".")) >= 2
+        and all(
+            re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) is not None
+            for label in domain.split(".")
+        )
+    )
+
+
+@router.post("/admin/github-managers")
+def save_github_managers(request: Request, emails: str = Form(""),
+                         db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None or user.role not in STAFF_ROLES:
+        return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
+    addresses = {entry.strip().lower() for entry in re.split(r"[,;\r\n]", emails) if entry.strip()}
+    invalid = sorted(email for email in addresses if not _valid_manager_email(email))
+    if invalid:
+        response = _render_admin_home(
+            request, db, user, ok=False,
+            msg="Invalid email address(es): " + ", ".join(invalid)
+                + ". Enter plain email addresses separated by lines, commas, or semicolons.",
+            github_manager_emails=emails,
+        )
+        response.status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+        return response
+
+    existing = {manager.email: manager for manager in db.query(GitHubManager).all()}
+    for email, manager in existing.items():
+        if email not in addresses:
+            db.delete(manager)
+    for email in sorted(addresses - existing.keys()):
+        db.add(GitHubManager(email=email))
+    db.commit()
+    audit.log(db, user, "admin.github_managers_save", target_type="github_managers",
+              details=f"count={len(addresses)}")
+    return RedirectResponse(
+        f"/admin?ok=1&msg={quote('GitHub managers saved.')}#github-managers",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 
 @router.post("/admin/backup")

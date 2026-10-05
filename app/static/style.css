@@ -223,6 +223,7 @@ input:disabled { background: rgba(255, 255, 255, .04); color: var(--muted); }
 .abstract-card { margin-bottom: 20px; }
 .abstract-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .abstract-form textarea { margin: 0; }
+.abstract-card [hidden] { display: none; }
 .owner-bar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
 .owner-label { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .owner-current strong { font-size: .98rem; }
@@ -426,7 +427,8 @@ textarea { font-family: inherit; resize: vertical; }
   overflow: hidden;
   transition: max-height .22s ease, opacity .18s ease, visibility 0s linear .22s, margin-top .22s ease;
 }
-.mm2-card:hover .mm2-details {
+.mm2-card:hover .mm2-details,
+.mm2-card:focus-within .mm2-details {
   max-height: 720px;
   opacity: 1;
   visibility: visible;
@@ -449,14 +451,14 @@ textarea { font-family: inherit; resize: vertical; }
 .mm2-task.here { border-color: var(--hpe-green); box-shadow: 0 0 0 2px rgba(1,169,130,.35); color: var(--text); background: rgba(1,169,130,.12); }
 .mm2-pin { position: absolute; top: -12px; right: -6px; font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); z-index: 2; }
 
-/* Time Warp: admin-only clickable pills on the Mallmanac. Each pill becomes a
-   <button class="mm2-task"> inside a <form>; reset native button chrome so it
-   still looks exactly like the plain-div pill other roles see. */
+/* Task pills work normally for all users; Time Warp is an explicit admin mode. */
 .mm2-task-form { margin: 0; padding: 0; width: 100%; }
 button.mm2-task {
   appearance: none; -webkit-appearance: none;
-  margin: 0; width: 100%; text-align: left; font: inherit; cursor: default;
+  margin: 0; width: 100%; text-align: left; font-family: inherit; cursor: pointer;
 }
+button.mm2-task:hover,
+button.mm2-task:focus-visible { outline: 2px solid var(--hpe-green); outline-offset: 1px; }
 .warp-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); cursor: pointer; user-select: none; }
 body.warp-mode .mm2-task-form button.mm2-task { cursor: pointer; }
 body.warp-mode .mm2-task-form button.mm2-task:hover { outline: 2px solid var(--hpe-green); outline-offset: 1px; }
@@ -466,4 +468,7 @@ body.warp-mode .mm2-task-form button.mm2-task:hover { outline: 2px solid var(--h
 
 @media (max-width: 720px) {
   .mm2-summary { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (hover: none) {
+  .mm2-card .mm2-details { max-height: none; opacity: 1; visibility: visible; margin-top: 14px; }
 }
