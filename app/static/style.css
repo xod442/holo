@@ -27,12 +27,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
   padding: 14px 28px;
   background: var(--ink);
   color: #fff;
   border-bottom: 1px solid var(--line);
 }
-.brand-group { display: flex; align-items: center; gap: 18px; }
+.brand-group { display: flex; align-items: center; gap: 18px; min-width: 0; }
 /* Official HPE mark (black on transparent) on a light plate so it stays
    compliant and legible on the dark top bar. Do not recolor the logo. */
 .hpe-logo {
@@ -46,8 +48,48 @@ body {
 }
 .brand span { color: var(--hpe-green); }
 .brand small { font-weight: 400; font-size: .72rem; color: #cbd5e1; margin-left: 10px; letter-spacing: 0; }
-.nav { display: flex; align-items: center; gap: 16px; }
-.who { color: #cbd5e1; font-size: .85rem; }
+.nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nav-toggle {
+  display: none; border: 1px solid var(--line); border-radius: 8px;
+  padding: 9px 14px; background: var(--surface2); color: var(--text);
+  font: inherit; font-size: .9rem; cursor: pointer;
+}
+.nav-dropdown { position: relative; }
+.nav-dropdown summary {
+  display: flex; align-items: center; gap: 8px; list-style: none;
+  padding: 10px 12px; border-radius: 8px; cursor: pointer;
+  color: #cbd5e1; font-size: .9rem; white-space: nowrap;
+}
+.nav-dropdown summary::-webkit-details-marker { display: none; }
+.nav-dropdown summary::after {
+  content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin-top: -3px;
+}
+.nav-dropdown[open] summary::after { transform: rotate(225deg); margin-top: 3px; }
+.nav-dropdown summary:hover, .nav-dropdown[open] summary { background: var(--surface2); color: var(--text); }
+.nav-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 20;
+  min-width: 200px; max-width: min(320px, calc(100vw - 32px));
+  padding: 6px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+}
+.nav-panel a, .nav-panel button {
+  display: block; width: 100%; padding: 10px 12px; border: none; border-radius: 6px;
+  background: none; color: var(--text); text-align: left; text-decoration: none;
+  font: inherit; font-size: .9rem; cursor: pointer;
+}
+.nav-panel a:hover, .nav-panel button:hover { background: var(--surface2); }
+.signed-in { min-width: 0; max-width: 260px; text-align: right; }
+.signed-in-label { display: block; margin-bottom: 3px; font-size: .7rem; color: var(--muted); }
+.account-email { display: block; font-size: .85rem; overflow-wrap: anywhere; }
+.account-role { display: block; margin-top: 4px; font-size: .75rem; color: var(--muted); text-transform: capitalize; }
+.nav a:focus-visible, .nav button:focus-visible, .nav summary:focus-visible, .nav-toggle:focus-visible {
+  outline: 2px solid var(--hpe-green); outline-offset: 3px;
+}
+.nav [aria-current="page"], .nav summary.is-current {
+  color: var(--hpe-green-dark); background: var(--success-bg);
+}
+.account-menu { margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--line); }
 .logout { margin: 0; }
 .btn-link {
   background: none; border: none; color: #fff; cursor: pointer;
@@ -115,8 +157,23 @@ input:disabled { background: rgba(255, 255, 255, .04); color: var(--muted); }
 .muted { color: var(--muted); }
 
 /* ---- nav links ---- */
-.navlink { color: #cbd5e1; text-decoration: none; font-size: .9rem; }
+.navlink { color: #cbd5e1; text-decoration: none; font-size: .9rem; padding: 10px 12px; border-radius: 8px; }
 .navlink:hover { color: #fff; }
+
+@media (max-width: 800px) {
+  .topbar { gap: 14px; padding: 14px 16px; }
+  .nav-toggle:not([hidden]) { display: block; margin-left: auto; }
+  .nav-toggle:not([hidden])[aria-expanded="false"] + .nav { display: none; }
+  .nav { width: 100%; align-items: stretch; gap: 6px; order: 2; }
+  .signed-in { order: 1; width: 100%; max-width: none; text-align: left; }
+  .nav > .navlink, .nav-dropdown { width: 100%; }
+  .nav-dropdown summary { justify-content: space-between; }
+  .nav-panel { position: static; max-width: none; min-width: 0; margin: 6px 0; box-shadow: none; }
+  .account-menu { margin: 6px 0 0; padding: 6px 0 0; border-left: none; border-top: 1px solid var(--line); }
+  .brand-group { gap: 12px; }
+  .brand { padding-left: 12px; }
+  .brand small { display: block; margin-left: 0; }
+}
 
 /* ---- FOCUS SSO launcher (external-app shortcut in the nav) ---- */
 .focus-link {

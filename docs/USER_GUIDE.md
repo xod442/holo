@@ -72,6 +72,12 @@ queue to review its submission, or approve it directly from the queue.
 
 ## 5. Create a lab
 
+The main navigation keeps **Dashboard**, **Mallmanac**, and **New Lab** visible.
+Staff tools (**Metrics**, **Admin**, **Notifications**, **System Log**) are grouped
+under **Manage**. **Account** contains password changes and logout. On small
+screens, select **Menu** to expand navigation; your signed-in email and role
+remain visible even when it is closed.
+
 Any signed-in user can create a lab.
 
 1. Select **New Lab**.
