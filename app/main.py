@@ -1,5 +1,6 @@
 """Application factory and entrypoint."""
 import threading
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -8,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import backup, config
+from . import backup, config, jade
 from .db import SessionLocal, init_db
 from .deps import get_current_user
 from .models import User, STAFF_ROLES
@@ -54,7 +55,21 @@ def create_app() -> FastAPI:
     # NOTE: we do NOT set FastAPI root_path. The edge strips the subpath before
     # the app sees it, so routes/mounts match unprefixed paths. ROOT_PATH is used
     # only to build outgoing URLs (templates, redirect Location, invite links).
-    app = FastAPI(title="HOLO", docs_url=None, redoc_url=None, openapi_url=None)
+    @asynccontextmanager
+    async def lifespan(app):
+        stop = threading.Event()
+        worker = None
+        if jade.enabled():
+            worker = threading.Thread(target=jade.run_loop, args=(stop,), daemon=True)
+            worker.start()
+        try:
+            yield
+        finally:
+            stop.set()
+            if worker is not None:
+                worker.join(timeout=15)
+
+    app = FastAPI(title="HOLO", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
     # Added first = inner; SessionMiddleware added last = outer, so request.session
     # is populated by the time the enforcement middleware runs.

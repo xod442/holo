@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
-from . import notifier
+from . import jade, notifier
 from .labs_template import PHASE_TEMPLATE, UPDATE_PHASE_TEMPLATE, STAGE_PRODUCTION
 from .models import (
     Approval,
@@ -62,6 +62,7 @@ def create_lab(db: Session, *, name: str, owner_id: int | None,
         for j, title in enumerate(tpl["tasks"]):
             db.add(Task(phase_id=phase.id, position=j, title=title))
 
+    jade.enqueue(db, lab)
     db.commit()
     db.refresh(lab)
     return lab

@@ -12,3 +12,5 @@ docker-compose.override.yaml
 .ruff_cache/
 .coverage
 htmlcov/
+.playwright-mcp/
+.vscode/

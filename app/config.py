@@ -67,3 +67,14 @@ VISTA_AUTH_SECRET = os.getenv("VISTA_AUTH_SECRET", "").strip()
 # VISTA executive dashboard. Guarded by a static key in the X-API-Key header,
 # independent of session-cookie auth. Empty = the API is disabled (404s).
 API_KEY = os.getenv("HOLO_API_KEY", "").strip()
+
+# Create-only registration into JADE; browser and API addresses may differ.
+JADE_API_URL = os.getenv("HOLO_JADE_API_URL", "").rstrip("/")
+JADE_PUBLIC_URL = os.getenv("HOLO_JADE_PUBLIC_URL", "").rstrip("/")
+JADE_TOKEN = os.getenv("HOLO_JADE_TOKEN", "").strip()
+JADE_SOURCE_ID = os.getenv("HOLO_JADE_SOURCE_ID", "").strip()
+PUBLIC_URL = os.getenv("HOLO_PUBLIC_URL", "").rstrip("/")
+JADE_TEAM = os.getenv("HOLO_JADE_TEAM", "TRIG").strip()
+JADE_TECHNOLOGY = os.getenv("HOLO_JADE_TECHNOLOGY", "Mist, Central and OS-CX").strip()
+JADE_AUDIENCE = os.getenv("HOLO_JADE_AUDIENCE", "Systems Engineer").strip()
+JADE_ACCESS = os.getenv("HOLO_JADE_ACCESS", "Internal").strip()

@@ -46,6 +46,29 @@
   <span class="status-badge status-{{ status|replace(' ', '-')|lower }}">{{ status }}</span>
 </div>
 
+{% if jade_registration %}
+<section class="card">
+  <h2>JADE registration</h2>
+  {% if jade_registration.state == 'registered' %}
+  <p>Registered · EA-{{ '%05d'|format(jade_registration.jade_asset_id) }}</p>
+  <a class="btn btn-sm ghost" href="{{ jade_registration.record_url }}" target="_blank" rel="noopener noreferrer">View in JADE</a>
+  {% elif jade_registration.state == 'needs_attention' %}
+  <p class="alert error">JADE registration needs attention: {{ jade_registration.last_error }}</p>
+  {% else %}
+  <p>Pending JADE registration · {{ 'Sending' if jade_registration.state == 'processing' else 'Waiting for automatic retry' }}</p>
+  {% if jade_registration.last_error %}<p class="hint">{{ jade_registration.last_error }}</p>{% endif %}
+  {% endif %}
+  {% if jade_enabled and can_change_owner and jade_registration.state in ['pending', 'needs_attention'] %}
+  <form method="post" action="{{ rp }}/labs/{{ lab.id }}/jade/retry">
+    <button class="btn btn-sm ghost" type="submit">Retry JADE registration</button>
+  </form>
+  {% endif %}
+  <p class="hint">Registration is create-only. Later edits here do not overwrite JADE. Refresh to see the latest status.</p>
+</section>
+{% elif jade_enabled and lab.parent_lab_id is none %}
+<p class="hint">No automatic JADE registration was queued for this existing HOL. Only new HOLs are registered automatically.</p>
+{% endif %}
+
 {% if lab.abstract or can_change_owner %}
 <section class="card abstract-card">
   <span class="owner-label">Abstract</span>

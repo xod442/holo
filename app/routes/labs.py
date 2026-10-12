@@ -8,12 +8,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from .. import lab_service as svc
-from .. import audit, notifier
+from .. import audit, jade, notifier
 from ..db import get_db
 from ..deps import get_current_user
 from ..labs_template import PHASE_AXIS, TOTAL_ESTIMATED_HOURS
 from ..models import (
-    Lab, LabLink, Phase, Task, User,
+    JadeRegistration, Lab, LabLink, Phase, Task, User,
     ROLE_MANAGER, STAFF_ROLES, PHASE_AWAITING,
 )
 from ..web import templates
@@ -462,10 +462,32 @@ def lab_detail(lab_id: int, request: Request, db: Session = Depends(get_db),
             "can_approve": user.role == ROLE_MANAGER,
             "users": db.query(User).order_by(User.email).all(),
             "can_change_owner": user.role in STAFF_ROLES or lab.owner_id == user.id,
+            "jade_registration": db.get(JadeRegistration, lab.id),
+            "jade_enabled": jade.enabled(),
             "msg": request.query_params.get("msg", ""),
             "ok": request.query_params.get("ok", "1") == "1",
         },
     )
+
+
+@router.post("/labs/{lab_id}/jade/retry")
+def retry_jade(lab_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if user is None:
+        return _login()
+    lab = db.get(Lab, lab_id)
+    if lab is None:
+        raise HTTPException(status_code=404, detail="HOL not found.")
+    if user.role not in STAFF_ROLES and lab.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Only the owner or staff may retry registration.")
+    job = db.get(JadeRegistration, lab.id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="No JADE registration was queued for this HOL.")
+    if not jade.enabled():
+        raise HTTPException(status_code=409, detail="The JADE integration is disabled.")
+    if not jade.retry(db, job):
+        raise HTTPException(status_code=409, detail="Registration is already complete or currently being sent.")
+    audit.log(db, user, "lab.jade_retry", target_type="lab", target_id=lab.id, target_label=lab.name)
+    return _back(lab.id)
 
 
 @router.post("/labs/{lab_id}/update")

@@ -88,6 +88,24 @@ Any signed-in user can create a lab.
 HOLO creates the complete eight-phase pipeline automatically and makes the new
 lab owner the record owner. The **Concept** phase starts active.
 
+### Automatic JADE registration
+
+If your administrator enabled the JADE integration, a new HOL also queues a
+JADE asset record without delaying lab creation. The lab detail page shows
+**Pending**, **Registered** with a **View in JADE** link, or **Needs attention**.
+Refresh the page to see progress. JADE uses the HOL title, abstract and owner's
+registered email, with administrator-defined team, technology, audience and
+access defaults. No additional fields are needed on the new-lab form.
+
+An abstract is required for JADE even though it is optional in HOLO. For
+**Needs attention**, add the abstract or assign an owner whose email already
+exists in JADE, then select **Retry JADE registration**. The owner, Admin or
+Manager can retry; connection failures retry automatically. Ask staff to
+correct integration configuration or credentials if the error requests it.
+
+Registration is create-only: editing a HOL later does not change JADE's record.
+Existing HOLs and production update workflows are not registered automatically.
+
 ## 6. Work on a lab
 
 Select a lab from the Dashboard or Mallmanac to open its workspace.

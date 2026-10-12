@@ -27,6 +27,78 @@ FastAPI + SQLite app, Dockerized, Opal-styled (dark theme, HPE branding).
 
 ---
 
+## JADE automatic registration
+
+When enabled, creating a **new HOL** atomically queues one JADE record.
+HOL creation never waits for an HTTP call. A managed background worker sends
+the queue item to JADE's authenticated `POST /api/v1/assets` endpoint. Production
+update workflows and HOLs created before enabling this feature are excluded.
+This is **create-only**: later edits in either app do not synchronize or overwrite
+the other app. No shared database access is required.
+
+Set these deployment variables (also documented in `.env.example`):
+
+| Variable | Meaning |
+|---|---|
+| `HOLO_JADE_API_URL` | Server-reachable JADE base URL, without `/api/v1` |
+| `HOLO_JADE_PUBLIC_URL` | Browser-facing JADE base URL, including proxy subpath |
+| `HOLO_PUBLIC_URL` | Browser-facing HOLO base URL, including proxy subpath |
+| `HOLO_JADE_TOKEN` | Secret matching JADE's `JADE_INTEGRATION_TOKEN`, at least 32 characters |
+| `HOLO_JADE_SOURCE_ID` | Stable unique installation ID, e.g. `holo-production`; do not change across restarts/restores |
+| `HOLO_JADE_TEAM` | Creating team; default **TRIG** |
+| `HOLO_JADE_TECHNOLOGY` | Default **Mist, Central and OS-CX** |
+| `HOLO_JADE_AUDIENCE` | Default **Systems Engineer** |
+| `HOLO_JADE_ACCESS` | Default **Internal** |
+
+With no API URL and no token, the feature is disabled and existing creation
+behavior is unchanged. Partial configuration queues new HOLs but reports
+**Needs attention** rather than silently losing registration. Restart HOLO
+after changing configuration. Never commit tokens. Use HTTPS over untrusted
+networks and restrict the JADE endpoint to the HOLO host/network.
+
+On Linux host networking, `http://127.0.0.1:9091` can reach JADE's published
+port on the same host. In the macOS bridge override, use
+`http://host.docker.internal:9091` instead. If corporate DNS cannot resolve that
+name, add `extra_hosts: ["host.docker.internal:host-gateway"]` under the `holo`
+service in your local Docker Compose override. Browser-facing URLs are separate:
+they must be reachable by your users, e.g. `https://host.example/jade` and
+`https://host.example/holo`. URLs must not contain credentials, queries or
+fragments. Never point the authenticated API URL at an untrusted server.
+
+### Metadata and status
+
+The HOL name becomes Title, Abstract becomes the asset abstract, and the HOLO
+owner's email becomes Owner. That email **must already be registered in JADE**.
+Seeded usernames such as `admin` are not valid asset owners; assign a registered
+email owner before retrying. Asset type is **Hands-On Lab**. The primary content
+link opens the HOLO workflow; existing HOL links are copied as supporting links.
+The record gets a `HOLO` tag and its course ID (when present).
+
+Lifecycle reflects the workflow **at first successful registration**:
+Concept -> Ideation; subsequent unfinished phases -> Development;
+all phases complete -> Published; archived -> Retired.
+Blocked phases retain their underlying Ideation/Development stage.
+The lab form does not gain additional JADE fields.
+
+The lab detail panel shows **Pending**, **Registered** (with **View in JADE**),
+or **Needs attention**. A missing abstract, unregistered owner, invalid enum,
+authentication problem or malformed API response needs correction and manual
+retry. The owner, Admin or Manager can choose **Retry JADE registration**;
+other users cannot. Refresh the page to see status changes.
+
+Timeouts, network errors, HTTP 429 and 5xx errors retry automatically with
+exponential backoff capped at one hour. Attempts and errors persist in SQLite;
+expired two-minute processing leases are recovered after restart. A worker
+polls every five seconds with a ten-second HTTP timeout and refuses redirects.
+Registered items are never resent. JADE's unique source reference prevents a
+second record if the response is lost after JADE commits. Errors are logged
+without credentials. A missing installation ID at enqueue uses a persisted
+unique fallback reference, but delivery waits for valid configuration.
+
+Back up both databases. Restoring HOLO retains its source references; restoring
+JADE to before registration may remove a record that HOLO still reports as
+registered. This create-only feature does not reconcile independent restores.
+
 ## Roles & permissions
 
 HOLO has three roles: **Admin**, **Manager**, and **Member**.

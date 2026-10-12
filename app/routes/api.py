@@ -17,7 +17,7 @@ from .. import config
 from .. import lab_service as svc
 from ..db import get_db
 from ..labs_template import PHASE_AXIS
-from ..models import AuditLog, Invite, Lab, Phase, User, PHASE_AWAITING
+from ..models import AuditLog, Invite, Lab, User, PHASE_AWAITING
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
 

@@ -42,6 +42,15 @@ services:
       # Read-only JSON API (/api/v1/...) for external integrations (VISTA).
       # Empty = disabled. Must match the key VISTA is configured to send.
       - HOLO_API_KEY=${HOLO_API_KEY:-}
+      - HOLO_JADE_API_URL=${HOLO_JADE_API_URL:-}
+      - HOLO_JADE_PUBLIC_URL=${HOLO_JADE_PUBLIC_URL:-}
+      - HOLO_JADE_TOKEN=${HOLO_JADE_TOKEN:-}
+      - HOLO_JADE_SOURCE_ID=${HOLO_JADE_SOURCE_ID:-}
+      - HOLO_PUBLIC_URL=${HOLO_PUBLIC_URL:-}
+      - HOLO_JADE_TEAM=${HOLO_JADE_TEAM:-TRIG}
+      - HOLO_JADE_TECHNOLOGY=${HOLO_JADE_TECHNOLOGY:-Mist, Central and OS-CX}
+      - HOLO_JADE_AUDIENCE=${HOLO_JADE_AUDIENCE:-Systems Engineer}
+      - HOLO_JADE_ACCESS=${HOLO_JADE_ACCESS:-Internal}
     volumes:
       - holo-data:/data
     restart: unless-stopped

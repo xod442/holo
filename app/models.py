@@ -98,6 +98,23 @@ class Lab(Base):
         cascade="all, delete-orphan",
         order_by="LabLink.created_at",
     )
+    jade_registration: Mapped["JadeRegistration | None"] = relationship(
+        "JadeRegistration", cascade="all, delete-orphan", uselist=False,
+    )
+
+
+class JadeRegistration(Base):
+    __tablename__ = "jade_registrations"
+
+    lab_id: Mapped[int] = mapped_column(ForeignKey("labs.id"), primary_key=True)
+    external_id: Mapped[str] = mapped_column(String, unique=True)
+    state: Mapped[str] = mapped_column(String, default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_error: Mapped[str] = mapped_column(Text, default="")
+    jade_asset_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    record_url: Mapped[str] = mapped_column(Text, default="")
 
 
 class Phase(Base):
