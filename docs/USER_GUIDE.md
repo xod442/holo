@@ -150,6 +150,13 @@ Each phase contains task checkboxes and fields for:
 Select **Save** to store all changes in that phase. Hours accept half-hour
 increments and are shown beside the phase estimate when one exists.
 
+Select **Expand** on any Development or Production pill to open the same editor
+in a larger popup, with multiline task notes and a larger phase-notes field.
+Select **Save** inside the popup to save that pill's tasks, notes, target date,
+and hours. **Close** or **Escape** returns to the record without saving; your
+edits remain in the inline editor until you save or leave the page.
+Production-only updates support the same popup on all four Production pills.
+
 ### Add documents and resources
 
 In **Documents & Resources**:

@@ -174,9 +174,12 @@
   <div class="phase-head">
     <div>
       <span class="phase-stage">{% if p.requires_approval %}Requires approval{% else %}Completion step{% endif %}</span>
-      <h3 class="phase-name">{% if lab.parent_lab_id %}prod-{{ p.position - 3 }}{% else %}{{ p.position + 1 }}.{% endif %} {{ p.name }}</h3>
+      <h3 class="phase-name" id="phase-title-{{ p.id }}">{% if lab.parent_lab_id %}prod-{{ p.position - 3 }}{% else %}{{ p.position + 1 }}.{% endif %} {{ p.name }}</h3>
     </div>
     <div class="phase-head-right">
+      <button class="btn btn-sm ghost expand-pill" type="button"
+              aria-label="Expand {{ p.stage }}: {{ p.name }}" aria-haspopup="dialog"
+              aria-controls="pill-dialog" hidden>Expand</button>
       {% if p.target_date %}<span class="target-chip">🎯 {{ p.target_date }}</span>{% endif %}
       <span class="state-badge s-{{ p.state }}">{{ p.state|replace('_',' ')|title }}</span>
     </div>
@@ -191,7 +194,8 @@
             <input type="checkbox" name="done_{{ t.id }}" {% if t.done %}checked{% endif %}>
             <span>{{ t.title }}</span>
           </label>
-          <input class="task-note" type="text" name="note_{{ t.id }}" value="{{ t.note }}" placeholder="notes…">
+          <textarea class="task-note" name="note_{{ t.id }}" rows="1"
+                    aria-label="{{ t.title }} notes" placeholder="notes…">{{ t.note }}</textarea>
         </div>
       </li>
       {% endfor %}
@@ -214,8 +218,8 @@
     </p>
     {% endif %}
 
-    <label class="notes-label">Phase notes</label>
-    <textarea name="notes" rows="2" placeholder="Overall notes for this step…">{{ p.notes }}</textarea>
+    <label class="notes-label" for="phase-notes-{{ p.id }}">Phase notes</label>
+    <textarea id="phase-notes-{{ p.id }}" name="notes" rows="2" placeholder="Overall notes for this step…">{{ p.notes }}</textarea>
 
     <div class="pill-save-row">
       <div class="pill-fields">
@@ -289,6 +293,14 @@
 </section>
 {% endfor %}
 
+<dialog id="pill-dialog" class="pill-dialog">
+  <div class="pill-dialog-toolbar">
+    <span class="muted">Expanded pill</span>
+    <button class="btn btn-sm ghost" type="button" id="close-pill-dialog">Close</button>
+  </div>
+  <div id="pill-dialog-content"></div>
+</dialog>
+
 {% if content_task %}
 <section class="card resources" id="new-content">
   <h2>prod-2 / New Content</h2>
@@ -328,6 +340,7 @@
 {% endblock %}
 {% block scripts %}
 <script src="{{ rp }}/assets/vendor/flatpickr/flatpickr.min.js"></script>
+<script src="{{ rp }}/assets/phase-editor.js?v=20261014"></script>
 <script>
   const editAbstract = document.getElementById("edit-abstract");
   if (editAbstract) {
@@ -350,6 +363,12 @@
       }
     });
   }
-  flatpickr(".datepick", { dateFormat: "Y-m-d", allowInput: true });
+  document.querySelectorAll(".datepick").forEach((input) => {
+    flatpickr(input, {
+      dateFormat: "Y-m-d",
+      allowInput: true,
+      appendTo: input.closest(".phase"),
+    });
+  });
 </script>
 {% endblock %}
